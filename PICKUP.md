@@ -21,6 +21,10 @@ Last updated 12 Oct 2026.
 8. Playlist starts on the chosen track and second (embed URL form).
 9. Bad link error shows and fades, recents, login agent on and off, quit and resume.
 
+## Open issues
+
+Everything open is on GitHub: #1 to #5 labelled `josh` (manual checks and one Chrome setting), #6 and #7 labelled `claude` (shortcuts, rename).
+
 ## Not tested by Claude (needs a human)
 
 1. Clicking panel buttons and the ♫ icon (the message path was proven in a spike, the buttons send the same commands).
