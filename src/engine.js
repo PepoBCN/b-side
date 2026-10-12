@@ -38,7 +38,7 @@ function log(msg) {
 const DEFAULTS = {
   volume: 80, muted: false, dim: 0, fill: true, screens: 'all',
   pauseOnLock: true, pauseOnBattery: false, idleSaver: 0,
-  resumeOnLaunch: false, launchAtLogin: false, closeChromeTab: true
+  resumeOnLaunch: false, launchAtLogin: false, closeChromeTab: true, skipStill: true
 };
 
 var settings = Object.assign({}, DEFAULTS);
@@ -106,7 +106,7 @@ function playerPage(url, follower) {
   }
   const src = 'https://www.youtube.com/embed/' + p.id + '?' + Object.keys(q).map(function (k) { return k + '=' + encodeURIComponent(q[k]); }).join('&');
   const cfg = { id: p.id, list: p.list || '', follower: follower,
-                volume: settings.volume, muted: settings.muted, dim: settings.dim, fill: settings.fill };
+                volume: settings.volume, muted: settings.muted, dim: settings.dim, fill: settings.fill, skipStill: settings.skipStill };
   return `<!doctype html><html><head><meta charset="utf-8"><style>
 html,body{margin:0;height:100%;background:#000;overflow:hidden;cursor:none}
 #wrap{position:fixed;inset:0;overflow:hidden}
@@ -128,10 +128,15 @@ function onYouTubeIframeAPIReady(){
     onError:function(e){err=e.data;if(!C.follower&&C.list)setTimeout(function(){player.nextVideo();},1500);}
   }});
 }
+var stills=0,skipped=null;
+function stillCheck(){if(C.follower||!C.list||!C.skipStill||!ready||player.getPlayerState()!=1)return;var d=player.getVideoData();
+  if(!d.author||d.video_id===skipped)return;
+  if(/ - Topic$/.test(d.author)){if(stills<3){stills++;skipped=d.video_id;player.nextVideo();}}else stills=0;}
+function setSkipStill(b){C.skipStill=b;}
 function report(){try{var d=player.getVideoData();document.title=JSON.stringify({id:d.video_id,title:d.title,author:d.author,
   t:Math.floor(player.getCurrentTime()),d:Math.floor(player.getDuration()),s:player.getPlayerState(),
-  i:player.getPlaylistIndex(),m:player.isMuted(),v:player.getVolume(),err:err});}catch(e){}}
-setInterval(report,1000);
+  i:player.getPlaylistIndex(),m:player.isMuted(),v:player.getVolume(),err:err,still:stills>=3&&/ - Topic$/.test(d.author||'')});}catch(e){}}
+setInterval(function(){stillCheck();report();},1000);
 function toggle(){player.getPlayerState()==1?player.pauseVideo():player.playVideo();}
 function setVol(v){player.setVolume(v);if(v>0)player.unMute();}
 function setMuted(m){m?player.mute():player.unMute();}
@@ -288,7 +293,8 @@ function readMain() {
       main = st;
       if (st.title) rememberRecent(st.id, parseUrl(current || '').list, st.title);
       playerError = st.err === 101 || st.err === 150 ? 'The owner of this video blocks playing it outside YouTube.'
-                  : st.err ? 'YouTube could not play this video (error ' + st.err + ').' : null;
+                  : st.err ? 'YouTube could not play this video (error ' + st.err + ').'
+                  : st.still ? 'This mix is mostly audio uploads with a still album cover. Start it from an official music video for moving pictures.' : null;
     }
   } catch (e) {}
 }
@@ -366,6 +372,7 @@ function setSetting(key, value) {
   if (key === 'muted') jsMain('setMuted(' + settings.muted + ')');
   if (key === 'dim' || key === 'fill') jsAll('setLook(' + settings.dim + ',' + settings.fill + ')');
   if (key === 'screens') build(true);
+  if (key === 'skipStill') jsMain('setSkipStill(' + settings.skipStill + ')');
   if (key === 'launchAtLogin') writeLoginAgent();
   saveState();
 }

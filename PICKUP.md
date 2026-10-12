@@ -44,6 +44,7 @@ Everything open is on GitHub: #1 to #5 labelled `josh` (manual checks and one Ch
 4. headless Chrome hangs for the icon render; `qlmanage -t` is used instead. macOS 26 frames icons that aren't full bleed.
 5. swiftc on this Mac is broken (Command Line Tools SDK headers missing), hence JXA.
 6. Don't test with Eminem tracks (Josh, 12 Oct).
+7. Start mixes from an official music video. A mix seeded from a 'Topic' upload is all still album covers and looks frozen (12 Oct). The app skips up to 3 stills in a row, then shows a hint. Josh's current mix: Juicy, `_JZom_gVfuw&list=RD_JZom_gVfuw`.
 
 ## Ideas not done
 

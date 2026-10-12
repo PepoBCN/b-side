@@ -57,7 +57,7 @@ The references below were read directly from the live sites (their CSS, not scre
 ## Known constraints
 
 1. The app is signed ad hoc, not notarised. macOS 15 and later block it on first open until the user clicks Open Anyway in System Settings > Privacy & Security. The page has to say this plainly unless Josh pays for an Apple Developer account.
-2. Music videos and album art are copyrighted, and this is a promotional page. Demo footage comes from Creative Commons or public domain videos (Blender open movies, NASA) or Josh's own footage. No Eminem.
+2. Demo footage (decided by Josh, 12 Oct, #11): embedded YouTube videos are fine, played through YouTube's own embed player. Use official music videos, not 'Topic' audio uploads (they only show a still album cover). No Eminem.
 3. Captures must come from a clean desktop or a separate macOS user. Nothing personal on screen: files, chats, mail, tabs.
 4. The GitHub link and the download only work once the repo is public.
 5. Taking a video from Chrome works in Chrome only today. Other browsers are logged as a separate issue, not part of v1.
