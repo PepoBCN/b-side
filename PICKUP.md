@@ -21,9 +21,13 @@ Last updated 12 Oct 2026.
 8. Playlist starts on the chosen track and second (embed URL form).
 9. Bad link error shows and fades, recents, login agent on and off, quit and resume.
 
+## Next: landing page and public release (planned 12 Oct, not built)
+
+Plan in `docs/landing-plan.md`. Epics #12 decisions, #17 release readiness, #23 design and assets, #27 build, #31 QA and launch. Start with #7 (the public name), it gates everything. Nothing gets built or deployed until Josh says so.
+
 ## Open issues
 
-Everything open is on GitHub: #1 to #5 labelled `josh` (manual checks and one Chrome setting), #6 and #7 labelled `claude` (shortcuts, rename).
+Everything open is on GitHub: #1 to #5 labelled `josh` (manual checks and one Chrome setting), #6 labelled `claude` (shortcuts), and the landing epics above.
 
 ## Not tested by Claude (needs a human)
 
@@ -45,4 +49,4 @@ Everything open is on GitHub: #1 to #5 labelled `josh` (manual checks and one Ch
 
 1. Global keyboard shortcuts.
 2. Per-screen different videos.
-3. Rename before ever publishing (YouTube trademark).
+3. Rename before ever publishing (YouTube trademark), now issue #7.
