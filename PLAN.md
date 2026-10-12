@@ -1,4 +1,4 @@
-# YouTube Wallpaper plan (12 Oct 2026)
+# B-Side plan (12 Oct 2026)
 
 ## What the others do
 
@@ -7,7 +7,7 @@
 | Source | any website | own 4K library, local files | YouTube (video, playlist, mix) |
 | Sound | not documented | no (silent) | yes, from the main screen only |
 | Screens | pick a display | all displays | all displays or main only, kept in sync |
-| Control | menu bar menu, Browsing Mode | menu bar popover | control panel + menu bar + `ytwall` CLI |
+| Control | menu bar menu, Browsing Mode | menu bar popover | control panel + menu bar + `bside` CLI |
 | Smart pause | deactivate on battery | battery-aware pausing | battery, screen lock / display sleep |
 | Look | opacity, invert colours | fill/fit | dim, fill or fit |
 | Screensaver | no | lock screen playback (Wallper) | screensaver mode, auto after idle |
@@ -17,7 +17,7 @@
 
 ## Adopting
 
-1. Proper app (`/Applications/YouTube Wallpaper.app`), no Dock icon, named process, one Chrome permission prompt.
+1. Proper app (`/Applications/B-Side.app`), no Dock icon, named process, one Chrome permission prompt.
 2. Control panel (dark, vibrancy) opened on launch, on re-launch and from the menu bar icon. Ice hides menu bar icons, so the panel is the main way in.
 3. Now playing card: thumbnail, title, progress bar you can click to seek, previous / play / next, mute, volume.
 4. Modes: wallpaper, screensaver (exit on click, key or mouse move), back to Chrome, turn off.
@@ -26,7 +26,7 @@
 7. Screensaver after idle: off, 2, 5, 10 or 15 minutes.
 8. Recents (last 12), paste a link, resume last video on launch, launch at login.
 9. Errors shown in the panel (some videos block embedding), auto-skip in playlists.
-10. `ytwall` CLI kept for scripting.
+10. `bside` CLI kept for scripting.
 
 ## Skipping
 
@@ -43,4 +43,4 @@
 - [x] Icon, `build.sh`, install to /Applications
 - [x] CLI `bin/ytwall` pointed at the app
 - [x] Test: both screens in sync, single player count, Chrome round trip, screensaver in/out, dim, fill, main-only, lock pause, panel render
-- [x] Repo PepoBCN/youtube-wallpaper (private), README, PICKUP
+- [x] Repo PepoBCN/b-side (private), README, PICKUP

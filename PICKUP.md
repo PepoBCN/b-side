@@ -1,15 +1,15 @@
-# Pickup: YouTube Wallpaper
+# Pickup: B-Side
 
 Last updated 12 Oct 2026.
 
 ## State
 
-1. v1.0 installed at `/Applications/YouTube Wallpaper.app`, repo PepoBCN/youtube-wallpaper (private).
-2. Rebuild and reinstall with `./build.sh`. It quits the running app, so run `ytwall resume` afterwards.
-3. `ytwall` is symlinked at `~/.local/bin/ytwall` -> `bin/ytwall`.
-4. Chrome automation permission granted 12 Oct. The identifier-only signature keeps it across rebuilds; if the bundle id ever changes, macOS asks again.
+1. v1.0 public as **B-Side** (renamed 12 Oct from YouTube Wallpaper), installed at `/Applications/B-Side.app`, repo [PepoBCN/b-side](https://github.com/PepoBCN/b-side) PUBLIC, MIT, release v1.0 with the zip.
+2. Rebuild and reinstall with `./build.sh`. It quits the running app, so run `bside resume` afterwards.
+3. `bside` is symlinked at `~/.local/bin/bside` -> `bin/bside` (old `ytwall` name kept as a second link).
+4. Chrome automation permission: the new bundle id `com.feldberg.bside` needs one more Allow click. The identifier-only signature keeps it across rebuilds; if the bundle id ever changes, macOS asks again.
 
-## Tested 12 Oct (all via the same command path the panel uses, readings from `ytwall status`)
+## Tested 12 Oct (all via the same command path the panel uses, readings from `bside status`)
 
 1. Take from Chrome (tab closes), both screens, panel render.
 2. Next, previous, pause, play, mute, volume, seek bar data.
@@ -23,7 +23,7 @@ Last updated 12 Oct 2026.
 
 ## Next: landing page and public release (planned 12 Oct, not built)
 
-Plan in `docs/landing-plan.md`. Epics #12 decisions, #17 release readiness, #23 design and assets, #27 build, #31 QA and launch. Name decided 12 Oct: **B-Side** (#7 closed). Next decisions: #8 public repo + licence, #9 hosting, #10 notarisation. Then #13 rename. Nothing gets built or deployed until Josh says so.
+Plan in `docs/landing-plan.md`. Epics #12 decisions, #17 release readiness, #23 design and assets, #27 build, #31 QA and launch. Done 12 Oct: name B-Side (#7), repo public + MIT (#8), rename (#13), release pipeline + v1.0 (#14). Still open: #9 hosting, #10 notarisation, then assets (#23) and the page build (#27). The landing page is NOT built yet. Nothing gets built or deployed until Josh says so.
 
 ## Open issues
 

@@ -19,7 +19,7 @@ The references below were read directly from the live sites (their CSS, not scre
 ### What we take
 
 1. Colours: near-black `#0b0b0b`, off-white `#f2f0ea`, mid grey for secondary text, and one accent, the app's own red `#ff3b5c` (already the panel accent and the warm end of the icon gradient). No second accent.
-2. Type (Google Fonts): Archivo with its width axis for condensed headlines (the free stand-in for Univers Condensed), Archivo at normal width for body, JetBrains Mono for labels, numbers, the `ytwall` block and section markers.
+2. Type (Google Fonts): Archivo with its width axis for condensed headlines (the free stand-in for Univers Condensed), Archivo at normal width for body, JetBrains Mono for labels, numbers, the `bside` block and section markers.
 3. Big condensed uppercase headlines, small body text, generous black space, hard edges. Rounded corners only where the macOS UI itself is rounded (the panel screenshot).
 4. Motion only where it shows the product: the hero loop and the mode switcher. Nothing floats, fades in on scroll or parallaxes.
 
@@ -42,7 +42,7 @@ The references below were read directly from the live sites (their CSS, not scre
 | 4 | The panel | The control panel screenshot with numbered mono callouts (now playing, transport, modes, look, recents, settings) | Panel screenshot at 2x |
 | 5 | Every screen | Two screens playing the same video, "sound comes from the main screen" | Two-screen capture or a clean diagram |
 | 6 | Spec sheet | What it does and needs, as a table: screens, sound, pauses on lock and battery, idle screensaver, recents, requirements, size, privacy (no tracking, no account) | Facts from the app and the release |
-| 7 | Terminal | The `ytwall` commands, copyable | README text |
+| 7 | Terminal | The `bside` commands, copyable | README text |
 | 8 | Install | Honest steps: download, unzip, move to Applications, the Gatekeeper "Open Anyway" step, the Chrome permission prompt | Screenshots of both macOS prompts |
 | 9 | Changelog and footer | Latest release notes, GitHub link, licence, "Not affiliated with YouTube or Google" | Release notes |
 
@@ -64,4 +64,4 @@ The references below were read directly from the live sites (their CSS, not scre
 
 ## Tracking
 
-Epics and issues: [github.com/PepoBCN/youtube-wallpaper/issues](https://github.com/PepoBCN/youtube-wallpaper/issues), label `epic` for the five epics, `josh` for decisions and checks, `claude` for build work.
+Epics and issues: [github.com/PepoBCN/b-side/issues](https://github.com/PepoBCN/b-side/issues), label `epic` for the five epics, `josh` for decisions and checks, `claude` for build work.

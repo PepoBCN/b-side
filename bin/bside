@@ -1,17 +1,17 @@
 #!/bin/zsh
-# ytwall: drive YouTube Wallpaper from the terminal.
-#   ytwall                  open the control panel (starts the app if needed)
-#   ytwall on [screensaver] take the YouTube video open in Chrome
-#   ytwall <youtube link>   play that link
-#   ytwall off              back to Chrome at the same second
-#   ytwall stop | quit      turn the wallpaper off | quit the app
-#   ytwall pause|next|prev|mute|louder|quieter|wallpaper|screensaver|resume
-#   ytwall status           what's playing, as JSON
-#   ytwall vol 50 | dim 30 | screens all|main | fill on|off
-APP="YouTube Wallpaper"
+# bside: drive B-Side from the terminal.
+#   bside                  open the control panel (starts the app if needed)
+#   bside on [screensaver] take the YouTube video open in Chrome
+#   bside <youtube link>   play that link
+#   bside off              back to Chrome at the same second
+#   bside stop | quit      turn the wallpaper off | quit the app
+#   bside pause|next|prev|mute|louder|quieter|wallpaper|screensaver|resume
+#   bside status           what's playing, as JSON
+#   bside vol 50 | dim 30 | screens all|main | fill on|off
+APP="B-Side"
 running() { pgrep -f "$APP.app/Contents/MacOS" >/dev/null; }
 send() {
-  osascript -l JavaScript -e "ObjC.import('Foundation'); \$.NSDistributedNotificationCenter.defaultCenter.postNotificationNameObjectUserInfoDeliverImmediately('ytwall.cmd', $(printf '%s' "$1" | python3 -c 'import json,sys;print(json.dumps(sys.stdin.read()))'), \$(), true)" >/dev/null
+  osascript -l JavaScript -e "ObjC.import('Foundation'); \$.NSDistributedNotificationCenter.defaultCenter.postNotificationNameObjectUserInfoDeliverImmediately('bside.cmd', $(printf '%s' "$1" | python3 -c 'import json,sys;print(json.dumps(sys.stdin.read()))'), \$(), true)" >/dev/null
 }
 ensure() {
   running && return
@@ -29,7 +29,7 @@ case "$1" in
   fill) ensure; send "set:fill=$([[ $2 == off ]] && echo false || echo true)" ;;
   quit) running && send quit ;;
   status)
-    F="$HOME/Library/Application Support/YouTube Wallpaper/status.json"
+    F="$HOME/Library/Application Support/B-Side/status.json"
     running || { echo '{"running": false}'; exit 0; }
     rm -f "$F"; send status
     for i in {1..20}; do [[ -f "$F" ]] && break; sleep 0.1; done

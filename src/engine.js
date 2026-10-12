@@ -1,27 +1,29 @@
-// YouTube Wallpaper: plays a YouTube video, playlist or mix as the desktop wallpaper on every screen,
+// B-Side: plays a YouTube video, playlist or mix as the desktop wallpaper on every screen,
 // with sound from the main screen. Built by build.sh into a stay-open JXA applet.
 //
 // Control surfaces, all routed through command():
 //   control panel (panel.html, WKScriptMessageHandler "yt")
 //   menu bar icon (opens the panel)
-//   `ytwall <command>` (distributed notification "ytwall.cmd")
+//   `bside <command>` (distributed notification "bside.cmd")
 
 ObjC.import('Cocoa');
 ObjC.import('WebKit');
 
-const APP_NAME = 'YouTube Wallpaper';
-const ORIGIN = 'https://localhost.wallpaper';
+const APP_NAME = 'B-Side';
+const ORIGIN = 'https://localhost.bside';
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15';
-const SUPPORT_DIR = ObjC.unwrap($('~/Library/Application Support/YouTube Wallpaper').stringByExpandingTildeInPath);
+const SUPPORT_DIR = ObjC.unwrap($('~/Library/Application Support/B-Side').stringByExpandingTildeInPath);
 const STATE_FILE = SUPPORT_DIR + '/state.json';
 const STATUS_FILE = SUPPORT_DIR + '/status.json';
-const LOG_FILE = ObjC.unwrap($('~/Library/Logs/YouTube Wallpaper.log').stringByExpandingTildeInPath);
-const AGENT_FILE = ObjC.unwrap($('~/Library/LaunchAgents/com.feldberg.ytwallpaper.plist').stringByExpandingTildeInPath);
+const LOG_FILE = ObjC.unwrap($('~/Library/Logs/B-Side.log').stringByExpandingTildeInPath);
+const AGENT_FILE = ObjC.unwrap($('~/Library/LaunchAgents/com.feldberg.bside.plist').stringByExpandingTildeInPath);
+
+const VERSION = (function () { try { return ObjC.unwrap($.NSBundle.mainBundle.objectForInfoDictionaryKey('CFBundleShortVersionString')) || ''; } catch (e) { return ''; } })();
 
 const sa = Application.currentApplication();
 sa.includeStandardAdditions = true;
 
-// Append a line to ~/Library/Logs/YouTube Wallpaper.log (kept short).
+// Append a line to ~/Library/Logs/B-Side.log.
 function log(msg) {
   try {
     const fm = $.NSFileManager.defaultManager;
@@ -59,6 +61,12 @@ var tick = 0;
 var ctrl, panelHandler, item, panel, panelWeb, wins = [], views = [], catchers = [], layout = '';
 
 function loadState() {
+  const old = ObjC.unwrap($('~/Library/Application Support/YouTube Wallpaper/state.json').stringByExpandingTildeInPath);
+  const fm = $.NSFileManager.defaultManager;
+  if (!fm.fileExistsAtPath(STATE_FILE) && fm.fileExistsAtPath(old)) {
+    fm.createDirectoryAtPathWithIntermediateDirectoriesAttributesError(SUPPORT_DIR, true, $(), null);
+    fm.copyItemAtPathToPathError(old, STATE_FILE, null);
+  }
   try {
     const s = JSON.parse(ObjC.unwrap($.NSString.stringWithContentsOfFileEncodingError(STATE_FILE, 4, null)));
     settings = Object.assign({}, DEFAULTS, s.settings || {});
@@ -156,7 +164,7 @@ function jsAll(code) { views.forEach(function (v) { evalIn(v, code); }); }
 // ---------------------------------------------------------------- windows
 
 ObjC.registerSubclass({
-  name: 'YTWallpaperWindow', superclass: 'NSWindow',
+  name: 'BSideWindow', superclass: 'NSWindow',
   methods: {
     'canBecomeKeyWindow': { types: ['bool', []], implementation: function () { return true; } },
     'keyDown:': { types: ['void', ['id']], implementation: function () { exitSaver(); } }
@@ -165,7 +173,7 @@ ObjC.registerSubclass({
 
 // Sits over the video in screensaver mode and ends it on click or mouse movement.
 ObjC.registerSubclass({
-  name: 'YTClickCatcher', superclass: 'NSView',
+  name: 'BSideClickCatcher', superclass: 'NSView',
   methods: {
     'acceptsFirstResponder': { types: ['bool', []], implementation: function () { return true; } },
     'acceptsFirstMouse:': { types: ['bool', ['id']], implementation: function () { return true; } },
@@ -205,7 +213,7 @@ function build(force) {
   const n = settings.screens === 'main' ? 1 : s.count;
   for (let i = 0; i < n; i++) {
     const frame = s.objectAtIndex(i).frame;
-    const win = $.YTWallpaperWindow.alloc.initWithContentRectStyleMaskBackingDefer(frame, $.NSWindowStyleMaskBorderless, $.NSBackingStoreBuffered, false);
+    const win = $.BSideWindow.alloc.initWithContentRectStyleMaskBackingDefer(frame, $.NSWindowStyleMaskBorderless, $.NSBackingStoreBuffered, false);
     win.releasedWhenClosed = false;
     win.setFrameDisplay(frame, true);
     win.collectionBehavior = $.NSWindowCollectionBehaviorCanJoinAllSpaces | $.NSWindowCollectionBehaviorStationary | $.NSWindowCollectionBehaviorIgnoresCycle;
@@ -220,7 +228,7 @@ function build(force) {
     web.customUserAgent = UA;
     win.contentView.addSubview(web);
 
-    const catcher = $.YTClickCatcher.alloc.initWithFrame(win.contentView.bounds);
+    const catcher = $.BSideClickCatcher.alloc.initWithFrame(win.contentView.bounds);
     catcher.autoresizingMask = $.NSViewWidthSizable | $.NSViewHeightSizable;
     win.contentView.addSubview(catcher);
 
@@ -383,7 +391,7 @@ function writeLoginAgent() {
       $(`<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
-<key>Label</key><string>com.feldberg.ytwallpaper</string>
+<key>Label</key><string>com.feldberg.bside</string>
 <key>ProgramArguments</key><array><string>/usr/bin/open</string><string>-a</string><string>${APP_NAME}</string></array>
 <key>RunAtLoad</key><true/>
 </dict></plist>
@@ -439,7 +447,7 @@ function takeOrResume(m) { if (findChromeTab()) takeFromChrome(m); else if (last
 // ---------------------------------------------------------------- control panel
 
 ObjC.registerSubclass({
-  name: 'YTController',
+  name: 'BSideController',
   methods: {
     'statusClick:': { types: ['void', ['id']], implementation: function () { togglePanel(); } },
     'notified:': { types: ['void', ['id']], implementation: function (n) { command(ObjC.unwrap(n.object)); } },
@@ -451,7 +459,7 @@ ObjC.registerSubclass({
 });
 
 ObjC.registerSubclass({
-  name: 'YTPanelHandler', protocols: ['WKScriptMessageHandler'],
+  name: 'BSidePanelHandler', protocols: ['WKScriptMessageHandler'],
   methods: {
     'userContentController:didReceiveScriptMessage:': { types: ['void', ['id', 'id']],
       implementation: function (uc, msg) { command(ObjC.unwrap(msg.body)); } }
@@ -479,8 +487,8 @@ function makePanel() {
   panel.contentView = fx;
 
   const cfg = $.WKWebViewConfiguration.alloc.init;
-  panelHandler = $.YTPanelHandler.alloc.init;
-  cfg.userContentController.addScriptMessageHandlerName(panelHandler, 'yt');
+  panelHandler = $.BSidePanelHandler.alloc.init;
+  cfg.userContentController.addScriptMessageHandlerName(panelHandler, 'bside');
   panelWeb = $.WKWebView.alloc.initWithFrameConfiguration(fx.bounds, cfg);
   panelWeb.autoresizingMask = $.NSViewWidthSizable | $.NSViewHeightSizable;
   panelWeb.setValueForKey($.NSNumber.numberWithBool(false), 'drawsBackground');
@@ -513,7 +521,7 @@ function panelState() {
     now: on ? { id: main.id || p.id, title: main.title || '', author: main.author || '', t: main.t || 0, d: main.d || 0,
                 playing: main.s === 1, buffering: main.s === 3, list: !!p.list } : null,
     settings: settings, recents: recents, chrome: chromeTab, canResume: !!last,
-    players: views.length,
+    version: VERSION, players: views.length,
     followers: views.slice(1).map(function (v) { try { return JSON.parse(ObjC.unwrap(v.title)).id || null; } catch (e) { return null; } }),
     panelOpen: !!(panel && panel.isVisible)
   };
@@ -565,16 +573,16 @@ function run() {
   const app = $.NSApplication.sharedApplication;
   app.setActivationPolicy($.NSApplicationActivationPolicyAccessory);
   loadState();
-  ctrl = $.YTController.alloc.init;
+  ctrl = $.BSideController.alloc.init;
 
   item = $.NSStatusBar.systemStatusBar.statusItemWithLength($.NSVariableStatusItemLength);
-  item.autosaveName = 'YouTubeWallpaper';
+  item.autosaveName = 'BSide';
   item.button.title = '♫';
   item.button.toolTip = APP_NAME;
   item.button.target = ctrl;
   item.button.action = 'statusClick:';
 
-  $.NSDistributedNotificationCenter.defaultCenter.addObserverSelectorNameObject(ctrl, 'notified:', 'ytwall.cmd', $());
+  $.NSDistributedNotificationCenter.defaultCenter.addObserverSelectorNameObject(ctrl, 'notified:', 'bside.cmd', $());
   $.NSDistributedNotificationCenter.defaultCenter.addObserverSelectorNameObject(ctrl, 'locked:', 'com.apple.screenIsLocked', $());
   $.NSDistributedNotificationCenter.defaultCenter.addObserverSelectorNameObject(ctrl, 'unlocked:', 'com.apple.screenIsUnlocked', $());
   const wsnc = $.NSWorkspace.sharedWorkspace.notificationCenter;
