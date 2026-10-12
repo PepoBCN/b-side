@@ -23,7 +23,7 @@ Last updated 12 Oct 2026.
 
 ## Next: landing page and public release (planned 12 Oct, not built)
 
-Plan in `docs/landing-plan.md`. Epics #12 decisions, #17 release readiness, #23 design and assets, #27 build, #31 QA and launch. Start with #7 (the public name), it gates everything. Nothing gets built or deployed until Josh says so.
+Plan in `docs/landing-plan.md`. Epics #12 decisions, #17 release readiness, #23 design and assets, #27 build, #31 QA and launch. Name decided 12 Oct: **B-Side** (#7 closed). Next decisions: #8 public repo + licence, #9 hosting, #10 notarisation. Then #13 rename. Nothing gets built or deployed until Josh says so.
 
 ## Open issues
 
