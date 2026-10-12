@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>YouTube Wallpaper</title>
+<style>
+:root {
+  --text: rgba(255,255,255,.92);
+  --muted: rgba(255,255,255,.55);
+  --faint: rgba(255,255,255,.08);
+  --line: rgba(255,255,255,.12);
+  --card: rgba(255,255,255,.06);
+  --accent: #ff3b5c;
+  --accent-soft: rgba(255,59,92,.18);
+  --ok: #30d158;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: transparent; color: var(--text);
+  font: 13px/1.35 -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif; -webkit-user-select: none; cursor: default; }
+body { padding: 38px 16px 14px; }
+button { font: inherit; color: inherit; border: 0; background: none; cursor: default; }
+input { font: inherit; }
+.row { display: flex; align-items: center; gap: 8px; }
+.grow { flex: 1; min-width: 0; }
+.hidden { display: none !important; }
+
+header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+header h1 { font-size: 15px; font-weight: 650; margin: 0; letter-spacing: -.01em; }
+.pill { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 99px; background: var(--faint); color: var(--muted); }
+.pill.live { background: var(--accent-soft); color: #ff8098; }
+.pill.live::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-right: 6px; vertical-align: 1px; }
+
+.banner { background: rgba(255,159,10,.16); color: #ffcc80; border-radius: 10px; padding: 8px 10px; margin-bottom: 10px; font-size: 12px; }
+
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px; margin-bottom: 12px; }
+.thumb { position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 10px; overflow: hidden; background: #111 center/cover no-repeat; }
+.thumb .badge { position: absolute; left: 8px; top: 8px; font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  background: rgba(0,0,0,.6); padding: 3px 7px; border-radius: 6px; }
+.title { font-size: 14px; font-weight: 600; margin: 10px 0 2px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.sub { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.progress { margin-top: 10px; }
+.bar { height: 4px; border-radius: 4px; background: var(--line); position: relative; cursor: pointer; }
+.bar:hover { height: 6px; margin: -1px 0; }
+.bar i { position: absolute; inset: 0 auto 0 0; background: var(--text); border-radius: 4px; }
+.times { display: flex; justify-content: space-between; color: var(--muted); font-size: 11px; margin-top: 4px; font-variant-numeric: tabular-nums; }
+
+.transport { display: flex; justify-content: center; align-items: center; gap: 22px; margin: 6px 0 8px; }
+.icon { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; }
+.icon:hover { background: var(--faint); }
+.icon:active { transform: scale(.94); }
+.icon svg { width: 20px; height: 20px; fill: currentColor; }
+.icon.big { width: 46px; height: 46px; background: var(--text); color: #111; }
+.icon.big:hover { background: #fff; }
+.icon.big svg { width: 22px; height: 22px; }
+.icon.sm { width: 28px; height: 28px; }
+.icon.sm svg { width: 17px; height: 17px; }
+.icon.on { color: var(--accent); }
+
+input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 4px; border-radius: 4px; background: var(--line); outline: none; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.4); }
+
+.seg { display: flex; background: var(--faint); border-radius: 9px; padding: 2px; }
+.seg button { flex: 1; padding: 6px 0; border-radius: 7px; font-weight: 550; color: var(--muted); }
+.seg button.sel { background: rgba(255,255,255,.16); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.25); }
+.seg button:disabled { opacity: .4; }
+
+.btn { padding: 8px 12px; border-radius: 9px; background: var(--faint); font-weight: 550; text-align: center; }
+.btn:hover { background: rgba(255,255,255,.13); }
+.btn:active { transform: scale(.98); }
+.btn.primary { background: var(--accent); color: #fff; }
+.btn.primary:hover { background: #ff5574; }
+.btn:disabled { opacity: .4; }
+.btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+
+h2 { font-size: 11px; font-weight: 650; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 16px 2px 8px; }
+.list { background: var(--card); border: 1px solid var(--line); border-radius: 12px; }
+.list > .item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; min-height: 40px; }
+.list > .item + .item { border-top: 1px solid var(--line); }
+.list label:not(.switch) { flex: 1; }
+.list .hint { color: var(--muted); font-size: 11px; display: block; }
+
+.switch { position: relative; width: 34px; height: 20px; flex: none; }
+.switch input { display: none; }
+.switch span { position: absolute; inset: 0; background: rgba(255,255,255,.2); border-radius: 99px; transition: background .15s; }
+.switch span::after { content: ""; position: absolute; left: 2px; top: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .15s; box-shadow: 0 1px 2px rgba(0,0,0,.3); }
+.switch input:checked + span { background: var(--ok); }
+.switch input:checked + span::after { transform: translateX(14px); }
+
+select { font: inherit; color: var(--text); background: var(--faint); border: 1px solid var(--line); border-radius: 7px; padding: 3px 6px; }
+.url { display: flex; gap: 6px; margin-top: 10px; }
+.url input { flex: 1; min-width: 0; background: rgba(0,0,0,.25); border: 1px solid var(--line); color: var(--text); border-radius: 9px; padding: 7px 10px; outline: none; -webkit-user-select: text; }
+.url input:focus { border-color: rgba(255,255,255,.35); }
+
+.recents { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.recent { text-align: left; border-radius: 10px; padding: 0; overflow: hidden; background: var(--card); border: 1px solid var(--line); }
+.recent:hover { border-color: rgba(255,255,255,.3); }
+.recent .thumb { border-radius: 0; }
+.recent div.t { padding: 6px 8px; font-size: 11.5px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 36px; }
+.empty { color: var(--muted); font-size: 12px; padding: 4px 2px; }
+
+.lead { color: var(--muted); font-size: 12.5px; margin: 0 0 10px; }
+footer { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; color: var(--muted); font-size: 11px; }
+footer button { color: var(--muted); }
+footer button:hover { color: var(--text); }
+kbd { font: 10.5px ui-monospace, monospace; background: var(--faint); border-radius: 4px; padding: 1px 4px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>YouTube Wallpaper</h1>
+  <span id="status" class="pill">Off</span>
+</header>
+
+<div id="banner" class="banner hidden"></div>
+
+<!-- playing -->
+<section id="playing" class="card hidden">
+  <div id="np-thumb" class="thumb"><span id="np-badge" class="badge">Wallpaper</span></div>
+  <div id="np-title" class="title"></div>
+  <div id="np-sub" class="sub"></div>
+  <div class="progress">
+    <div id="bar" class="bar"><i id="bar-fill" style="width:0"></i></div>
+    <div class="times"><span id="t-now">0:00</span><span id="t-end">0:00</span></div>
+  </div>
+  <div class="transport">
+    <button class="icon" data-cmd="prev" title="Previous (←)"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
+    <button id="pp" class="icon big" data-cmd="toggle" title="Play / pause (Space)"></button>
+    <button class="icon" data-cmd="next" title="Next (→)"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg></button>
+  </div>
+  <div class="row">
+    <button id="mute" class="icon sm" data-cmd="mute" title="Mute (M)"></button>
+    <input id="vol" type="range" min="0" max="100" class="grow" aria-label="Volume">
+  </div>
+  <div class="seg" style="margin-top:12px">
+    <button data-cmd="wallpaper" id="m-wall">Wallpaper</button>
+    <button data-cmd="screensaver" id="m-saver">Screensaver</button>
+  </div>
+  <div class="btns">
+    <button class="btn" data-cmd="tochrome" title="Close the wallpaper and carry on in Chrome from the same second">Back to Chrome</button>
+    <button class="btn" data-cmd="stop">Turn off</button>
+  </div>
+</section>
+
+<!-- off -->
+<section id="idle" class="card hidden">
+  <div id="chrome-box" class="hidden">
+    <div id="chrome-thumb" class="thumb"><span class="badge">Open in Chrome</span></div>
+    <div id="chrome-title" class="title"></div>
+    <div class="btns">
+      <button class="btn primary" data-cmd="on:wallpaper">Play as wallpaper</button>
+      <button class="btn" data-cmd="on:screensaver">Screensaver</button>
+    </div>
+  </div>
+  <p id="no-chrome" class="lead hidden">Open a YouTube video, playlist or mix in Chrome and it will show up here. Or paste a link.</p>
+  <button id="resume" class="btn hidden" data-cmd="resume" style="width:100%;margin-top:8px">Resume where I left off</button>
+  <form id="url-form" class="url">
+    <input id="url" placeholder="Paste a YouTube link" spellcheck="false">
+    <button class="btn" type="submit">Play</button>
+  </form>
+</section>
+
+<h2>Look</h2>
+<div class="list">
+  <div class="item"><label>Dim<span class="hint">Darkens the video so icons stay readable</span></label><input id="dim" type="range" min="0" max="80" style="width:120px"></div>
+  <div class="item"><label for="fill">Fill the screen<span class="hint">Crops the edges instead of black bars</span></label><label class="switch"><input id="fill" type="checkbox" data-set="fill"><span></span></label></div>
+  <div class="item"><label>Screens<span id="screens-hint" class="hint">Sound comes from the main screen</span></label>
+    <div class="seg" style="width:150px"><button id="sc-all" data-cmd="set:screens=all">All</button><button id="sc-main" data-cmd="set:screens=main">Main only</button></div></div>
+</div>
+
+<h2>Recent</h2>
+<div id="recents" class="recents"></div>
+
+<h2>Settings</h2>
+<div class="list">
+  <div class="item"><label for="s-lock">Pause when the Mac locks or sleeps</label><label class="switch"><input id="s-lock" type="checkbox" data-set="pauseOnLock"><span></span></label></div>
+  <div class="item"><label for="s-batt">Pause on battery</label><label class="switch"><input id="s-batt" type="checkbox" data-set="pauseOnBattery"><span></span></label></div>
+  <div class="item"><label>Screensaver after idle</label>
+    <select id="idle-saver"><option value="0">Never</option><option value="2">2 min</option><option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option></select></div>
+  <div class="item"><label for="s-chrome">Close the Chrome tab when taking a video</label><label class="switch"><input id="s-chrome" type="checkbox" data-set="closeChromeTab"><span></span></label></div>
+  <div class="item"><label for="s-resume">Resume the last video when the app opens</label><label class="switch"><input id="s-resume" type="checkbox" data-set="resumeOnLaunch"><span></span></label></div>
+  <div class="item"><label for="s-login">Open at login</label><label class="switch"><input id="s-login" type="checkbox" data-set="launchAtLogin"><span></span></label></div>
+</div>
+
+<footer>
+  <span><kbd>Space</kbd> play <kbd>←</kbd><kbd>→</kbd> track <kbd>M</kbd> mute</span>
+  <button data-cmd="quit">Quit</button>
+</footer>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const ICON = {
+  play: '<svg viewBox="0 0 24 24"><path d="M7 4v16l13-8z"/></svg>',
+  pause: '<svg viewBox="0 0 24 24"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>',
+  sound: '<svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4zM14 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6z"/></svg>',
+  muted: '<svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9zm13.6 3 2.7-2.7-1.4-1.4-2.7 2.7-2.7-2.7-1.4 1.4 2.7 2.7-2.7 2.7 1.4 1.4 2.7-2.7 2.7 2.7 1.4-1.4z"/></svg>'
+};
+let S = null;
+
+function send(cmd) {
+  try { webkit.messageHandlers.yt.postMessage(cmd); } catch (e) { console.log('send', cmd); }
+}
+function fmt(s) {
+  s = Math.max(0, Math.floor(s || 0));
+  const h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, x = String(s % 60).padStart(2, '0');
+  return h ? h + ':' + String(m).padStart(2, '0') + ':' + x : m + ':' + x;
+}
+function thumb(el, id) {
+  const url = id ? 'url("https://i.ytimg.com/vi/' + id + '/mqdefault.jpg")' : 'none';
+  if (el.dataset.bg !== url) { el.style.backgroundImage = url; el.dataset.bg = url; }
+}
+function ytId(url) { const m = (url || '').match(/(?:v=|youtu\.be\/|shorts\/|live\/)([\w-]{11})/); return m ? m[1] : null; }
+function busy(el) { return document.activeElement === el && el.dataset.dragging === '1'; }
+
+// Called by the app every second while the panel is open.
+window.render = function (s) {
+  S = s;
+  const st = $('status');
+  st.textContent = s.on ? (s.mode === 'screensaver' ? 'Screensaver' : 'Wallpaper') + (s.pausedBy ? ' (paused)' : '') : 'Off';
+  st.className = 'pill' + (s.on ? ' live' : '');
+
+  const msg = s.error || (s.pausedBy === 'lock' ? 'Paused while the Mac was locked.' : s.pausedBy === 'battery' ? 'Paused on battery.' : '');
+  $('banner').textContent = msg;
+  $('banner').classList.toggle('hidden', !msg);
+
+  $('playing').classList.toggle('hidden', !s.on);
+  $('idle').classList.toggle('hidden', s.on);
+
+  if (s.on && s.now) {
+    const n = s.now;
+    thumb($('np-thumb'), n.id);
+    $('np-badge').textContent = s.mode === 'screensaver' ? 'Screensaver' : 'Wallpaper';
+    $('np-title').textContent = n.title || 'Loading…';
+    $('np-sub').textContent = (n.author || '') + (n.list ? (n.author ? ' · ' : '') + 'Playlist' : '');
+    $('bar-fill').style.width = n.d ? Math.min(100, n.t / n.d * 100) + '%' : '0';
+    $('t-now').textContent = fmt(n.t);
+    $('t-end').textContent = n.d ? fmt(n.d) : '';
+    $('pp').innerHTML = n.playing || n.buffering ? ICON.pause : ICON.play;
+    $('m-wall').classList.toggle('sel', s.mode === 'wallpaper');
+    $('m-saver').classList.toggle('sel', s.mode === 'screensaver');
+  }
+  $('mute').innerHTML = s.settings.muted ? ICON.muted : ICON.sound;
+  $('mute').classList.toggle('on', s.settings.muted);
+  if (!busy($('vol'))) $('vol').value = s.settings.muted ? 0 : s.settings.volume;
+
+  if (!s.on) {
+    const c = s.chrome;
+    $('chrome-box').classList.toggle('hidden', !c);
+    $('no-chrome').classList.toggle('hidden', !!c);
+    if (c) { thumb($('chrome-thumb'), ytId(c.url)); $('chrome-title').textContent = c.title; }
+    $('resume').classList.toggle('hidden', !s.canResume);
+  }
+
+  if (!busy($('dim'))) $('dim').value = s.settings.dim;
+  document.querySelectorAll('[data-set]').forEach((el) => { el.checked = !!s.settings[el.dataset.set]; });
+  $('idle-saver').value = String(s.settings.idleSaver);
+  $('sc-all').classList.toggle('sel', s.settings.screens !== 'main');
+  $('sc-main').classList.toggle('sel', s.settings.screens === 'main');
+  $('screens-hint').textContent = s.screens > 1 ? s.screens + ' screens connected, sound from the main one' : 'One screen connected';
+
+  const key = JSON.stringify(s.recents);
+  if ($('recents').dataset.key !== key) {
+    $('recents').dataset.key = key;
+    $('recents').innerHTML = s.recents.length ? '' : '<div class="empty">Videos you play show up here.</div>';
+    s.recents.slice(0, 8).forEach((r, i) => {
+      const b = document.createElement('button');
+      b.className = 'recent';
+      b.title = r.title;
+      b.innerHTML = '<div class="thumb"></div><div class="t"></div>';
+      thumb(b.firstChild, r.id);
+      b.lastChild.textContent = (r.list ? '▶︎ ' : '') + r.title;
+      b.onclick = () => send('recent:' + i);
+      $('recents').appendChild(b);
+    });
+  }
+};
+
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-cmd]');
+  if (b) send(b.dataset.cmd);
+});
+document.querySelectorAll('[data-set]').forEach((el) => {
+  el.addEventListener('change', () => send('set:' + el.dataset.set + '=' + el.checked));
+});
+$('idle-saver').addEventListener('change', (e) => send('set:idleSaver=' + e.target.value));
+
+function slider(el, make) {
+  let timer = null;
+  el.addEventListener('pointerdown', () => { el.dataset.dragging = '1'; });
+  el.addEventListener('pointerup', () => { el.dataset.dragging = '0'; });
+  el.addEventListener('input', () => {
+    el.dataset.dragging = '1';
+    clearTimeout(timer);
+    timer = setTimeout(() => send(make(el.value)), 60);
+  });
+  el.addEventListener('change', () => { el.dataset.dragging = '0'; send(make(el.value)); });
+}
+slider($('vol'), (v) => 'vol:' + v);
+slider($('dim'), (v) => 'set:dim=' + v);
+
+$('bar').addEventListener('click', (e) => {
+  if (!S || !S.now || !S.now.d) return;
+  const r = e.currentTarget.getBoundingClientRect();
+  send('seek:' + Math.floor((e.clientX - r.left) / r.width * S.now.d));
+});
+
+$('url-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const v = $('url').value.trim();
+  if (v) { send('url:' + v); $('url').value = ''; }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' && e.target.type !== 'range' && e.target.type !== 'checkbox') return;
+  if (e.metaKey && e.key === 'w') { send('hidepanel'); return; }
+  if (!S || !S.on) return;
+  const k = { ' ': 'toggle', ArrowRight: 'next', ArrowLeft: 'prev', m: 'mute', M: 'mute', ArrowUp: 'louder', ArrowDown: 'quieter' }[e.key];
+  if (k) { e.preventDefault(); send(k); }
+});
+</script>
+</body>
+</html>

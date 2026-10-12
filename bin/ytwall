@@ -1,0 +1,40 @@
+#!/bin/zsh
+# ytwall: drive YouTube Wallpaper from the terminal.
+#   ytwall                  open the control panel (starts the app if needed)
+#   ytwall on [screensaver] take the YouTube video open in Chrome
+#   ytwall <youtube link>   play that link
+#   ytwall off              back to Chrome at the same second
+#   ytwall stop | quit      turn the wallpaper off | quit the app
+#   ytwall pause|next|prev|mute|louder|quieter|wallpaper|screensaver|resume
+#   ytwall status           what's playing, as JSON
+#   ytwall vol 50 | dim 30 | screens all|main | fill on|off
+APP="YouTube Wallpaper"
+running() { pgrep -f "$APP.app/Contents/MacOS" >/dev/null; }
+send() {
+  osascript -l JavaScript -e "ObjC.import('Foundation'); \$.NSDistributedNotificationCenter.defaultCenter.postNotificationNameObjectUserInfoDeliverImmediately('ytwall.cmd', $(printf '%s' "$1" | python3 -c 'import json,sys;print(json.dumps(sys.stdin.read()))'), \$(), true)" >/dev/null
+}
+ensure() {
+  running && return
+  open -a "$APP"
+  for i in {1..20}; do running && sleep 1 && return; sleep 0.3; done
+}
+
+case "$1" in
+  "") ensure; send panel ;;
+  on) ensure; send "on:${2:-wallpaper}" ;;
+  http*) ensure; send "url:$1" ;;
+  vol) ensure; send "vol:$2" ;;
+  dim) ensure; send "set:dim=$2" ;;
+  screens) ensure; send "set:screens=$2" ;;
+  fill) ensure; send "set:fill=$([[ $2 == off ]] && echo false || echo true)" ;;
+  quit) running && send quit ;;
+  status)
+    F="$HOME/Library/Application Support/YouTube Wallpaper/status.json"
+    running || { echo '{"running": false}'; exit 0; }
+    rm -f "$F"; send status
+    for i in {1..20}; do [[ -f "$F" ]] && break; sleep 0.1; done
+    cat "$F" ;;
+  off|stop|pause|play|next|prev|mute|louder|quieter|wallpaper|screensaver|resume) running || [[ $1 == resume || $1 == wallpaper || $1 == screensaver ]] && { ensure; send "$1"; } ;;
+  *) sed -n '2,10p' "$0" ;;
+esac
+exit 0
