@@ -53,5 +53,6 @@ if [[ "$1" != "--no-install" ]]; then
   rm -rf "/Applications/B-Side.app"
   cp -R "$APP" /Applications/
   touch "/Applications/B-Side.app"
+  rm -rf "$APP"   # no second copy left in build/ for Spotlight to open
   echo "Installed /Applications/B-Side.app"
 fi

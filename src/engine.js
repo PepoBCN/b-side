@@ -10,6 +10,7 @@ ObjC.import('Cocoa');
 ObjC.import('WebKit');
 
 const APP_NAME = 'B-Side';
+const BUNDLE_ID = 'com.feldberg.bside';
 const ORIGIN = 'https://localhost.bside';
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15';
 const SUPPORT_DIR = ObjC.unwrap($('~/Library/Application Support/B-Side').stringByExpandingTildeInPath);
@@ -569,8 +570,28 @@ function onTick() {
 
 // ---------------------------------------------------------------- applet handlers
 
+// Only one copy runs. A second launch (a double open, or another copy of the app on disk)
+// shows the first copy's panel and quits, so commands never play twice.
+function firstInstance() {
+  const me = $.NSRunningApplication.currentApplication.processIdentifier;
+  const apps = $.NSRunningApplication.runningApplicationsWithBundleIdentifier(BUNDLE_ID);
+  for (let i = 0; i < apps.count; i++) {
+    const a = apps.objectAtIndex(i);
+    if (a.processIdentifier < me && !a.terminated) return a;
+  }
+  return null;
+}
+
 function run() {
   const app = $.NSApplication.sharedApplication;
+  const first = firstInstance();
+  if (first) {
+    log('already running as ' + first.processIdentifier + ', showing its panel');
+    $.NSDistributedNotificationCenter.defaultCenter.postNotificationNameObjectUserInfoDeliverImmediately('bside.cmd', 'panel', $(), true);
+    first.activateWithOptions($.NSApplicationActivateIgnoringOtherApps);
+    app.terminate(null);
+    return;
+  }
   app.setActivationPolicy($.NSApplicationActivationPolicyAccessory);
   loadState();
   ctrl = $.BSideController.alloc.init;
