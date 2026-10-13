@@ -3,3 +3,4 @@ build/
 PICKUP.md
 PLAN.md
 .claude/
+.netlify/
