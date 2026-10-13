@@ -43,7 +43,7 @@ function log(msg) {
 const DEFAULTS = {
   volume: 80, muted: false, dim: 0, fill: true, screens: 'all',
   pauseOnLock: true, pauseOnBattery: false, idleSaver: 0,
-  resumeOnLaunch: false, launchAtLogin: false, closeChromeTab: true, skipStill: true, shortcuts: true, useAccount: false
+  resumeOnLaunch: false, launchAtLogin: false, closeChromeTab: true, skipStill: true, shortcuts: true
 };
 
 var settings = Object.assign({}, DEFAULTS);
@@ -63,7 +63,7 @@ var chromeTab = null;      // {url, title} of a YouTube tab open in Chrome
 var tick = 0;
 
 // Live ObjC objects must stay referenced or JXA frees them.
-var mainState = null, ytSignedIn = false, signinWin = null, playerHandler = null;   // 'Use my YouTube account' mode
+var mainState = null, ytSignedIn = false, accountBuilt = false, signinWin = null, playerHandler = null;   // 'Use my YouTube account' mode
 var ctrl, panelHandler, item, panel, panelWeb, wins = [], views = [], catchers = [], layout = '';
 
 function loadState() {
@@ -226,7 +226,8 @@ function build(force) {
 
     const cfg = $.WKWebViewConfiguration.alloc.init;
     cfg.mediaTypesRequiringUserActionForPlayback = 0;
-    const account = i === 0 && settings.useAccount;
+    const account = i === 0 && ytSignedIn;
+    if (i === 0) accountBuilt = account;
     if (account) {
       if (!playerHandler) playerHandler = $.BSidePlayerHandler.alloc.init;
       cfg.userContentController.addUserScript($.WKUserScript.alloc.initWithSourceInjectionTimeForMainFrameOnly(watchScript(), 0, true));
@@ -303,7 +304,7 @@ function start(url, m) {
   if (m) mode = m;
   pauseChrome();
   if (!on) { on = true; build(true); }
-  else if (settings.useAccount) build(true);   // the watch page carries its settings in its user script
+  else if (accountBuilt || ytSignedIn) build(true);   // the watch page carries its settings in its user script
   else {
     // Same screens, new video: reload in place.
     views.forEach(function (v, i) { v.loadHTMLStringBaseURL(playerPage(current, i > 0), $.NSURL.URLWithString(ORIGIN + '/')); });
@@ -322,7 +323,7 @@ function stop() {
 
 function readMain() {
   try {
-    const st = JSON.parse(settings.useAccount ? mainState : ObjC.unwrap(views[0].title));
+    const st = JSON.parse(accountBuilt ? mainState : ObjC.unwrap(views[0].title));
     if (st && st.id) {
       main = st;
       if (st.title) rememberRecent(st.id, parseUrl(current || '').list, st.title);
@@ -505,10 +506,6 @@ function setSetting(key, value) {
   if (key === 'dim' || key === 'fill') jsAll('setLook(' + settings.dim + ',' + settings.fill + ')');
   if (key === 'screens') build(true);
   if (key === 'skipStill') { stillChecked = null; stillRun = 0; }
-  if (key === 'useAccount') {
-    if (settings.useAccount && !ytSignedIn) openSignin();
-    if (on) { readMain(); if (main.id) current = watchUrl(main.id, parseUrl(current || '').list, main.t, main.i); build(true); }
-  }
   if (key === 'launchAtLogin') writeLoginAgent();
   if (key === 'shortcuts') { if (settings.shortcuts) { axPrompted = false; setupShortcuts(); } else removeShortcuts(); }
   saveState();
@@ -665,7 +662,7 @@ ObjC.registerSubclass({
     'signinClosed:': { types: ['void', ['id']], implementation: function () {
       $.NSNotificationCenter.defaultCenter.removeObserverNameObject(ctrl, 'NSWindowWillCloseNotification', signinWin);
       checkSignedIn();
-      if (on && settings.useAccount) { readMain(); if (main.id) current = watchUrl(main.id, parseUrl(current || '').list, main.t, main.i); build(true); }
+
     } }
   }
 });
@@ -680,7 +677,7 @@ ObjC.registerSubclass({
 
 // ---------------------------------------------------------------- 'Use my YouTube account'
 
-// Opt-in, off by default. The main screen plays YouTube's normal watch page instead of the embed,
+// Used once you sign in to YouTube from the panel. The main screen plays YouTube's normal watch page instead of the embed,
 // so a signed-in YouTube Premium account plays without ads (the embed can't see the login:
 // WebKit blocks it as a third-party cookie). A user script shows only the video and reports state.
 ObjC.registerSubclass({
@@ -791,6 +788,8 @@ function checkSignedIn() {
       }
       if (found !== ytSignedIn) log('youtube account: ' + (found ? 'signed in' : 'signed out'));
       ytSignedIn = found;
+      // Signed in means the watch-page player (Premium: no ads); signed out means the embed.
+      if (on && found !== accountBuilt) { readMain(); if (main.id) current = watchUrl(main.id, parseUrl(current || '').list, main.t, main.i); build(true); }
     });
   } catch (e) { log('checkSignedIn: ' + e); }
 }
@@ -855,7 +854,7 @@ function panelState() {
     followers: views.slice(1).map(function (v) { try { return JSON.parse(ObjC.unwrap(v.title)).id || null; } catch (e) { return null; } }),
     panelOpen: !!(panel && panel.isVisible),
     chromeJs: chromeJs,
-    account: { use: settings.useAccount, signedIn: ytSignedIn, ad: !!(on && settings.useAccount && main.ad) },
+    account: { signedIn: ytSignedIn, ad: !!(on && accountBuilt && main.ad) },
     shortcuts: { enabled: settings.shortcuts, trusted: axTrusted, global: !!globalMonitor, local: !!localMonitor }
   };
   return state;
@@ -895,7 +894,7 @@ function onTick() {
     if (on) { readMain(); syncFollowers(); skipStills(); }
     if (on && tick % 5 === 0 && settings.idleSaver > 0 && mode === 'wallpaper' && idleSeconds() >= settings.idleSaver * 60) setMode('screensaver');
     if (on && tick % 30 === 0 && (settings.pauseOnBattery || pausedBy === 'battery')) smartPause('battery', onBattery());
-    if (tick % 30 === 0 && settings.useAccount) checkSignedIn();
+    if (tick % 30 === 0) checkSignedIn();
     if (settings.shortcuts && !globalMonitor && tick % 3 === 0) setupShortcuts();   // picks up the Allow click without a relaunch
     if (on && tick % 10 === 0 && main.id) { last = { url: watchUrl(main.id, parseUrl(current).list, main.t, main.i) }; saveState(); }
     if (panel && panel.isVisible) { if (tick % 3 === 0) refreshChrome(); pushPanel(); }
