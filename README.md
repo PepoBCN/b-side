@@ -28,7 +28,7 @@ To start from the exact second you were at in Chrome, rather than the start of t
 
 1. Open B-Side. The control panel appears.
 2. With a YouTube video open in Chrome, press **Play as wallpaper** or **Screensaver**. Or paste a link.
-3. Open the app again at any time to bring the panel back. The ♫ menu bar icon does the same (if a menu bar manager such as Ice or Bartender hides it, drag it out of the hidden section).
+3. B-Side sits in the Dock while it runs. Click it, or open the app again, to bring the panel back. The ♫ menu bar icon does the same (if a menu bar manager such as Ice or Bartender hides it, drag it out of the hidden section).
 4. In the panel: <kbd>Space</kbd> play or pause, <kbd>←</kbd> <kbd>→</kbd> change track, <kbd>M</kbd> mute, <kbd>↑</kbd> <kbd>↓</kbd> volume, <kbd>⌘W</kbd> hide.
 
 Mixes look best started from an official music video. A mix started from a "Topic" upload is mostly still album covers.

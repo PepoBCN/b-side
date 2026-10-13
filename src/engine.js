@@ -3,7 +3,7 @@
 //
 // Control surfaces, all routed through command():
 //   control panel (panel.html, WKScriptMessageHandler "yt")
-//   menu bar icon (opens the panel)
+//   Dock icon and menu bar icon (both open the panel)
 //   `bside <command>` (distributed notification "bside.cmd")
 
 ObjC.import('Cocoa');
@@ -605,7 +605,7 @@ function run() {
     app.terminate(null);
     return;
   }
-  app.setActivationPolicy($.NSApplicationActivationPolicyAccessory);
+  app.setActivationPolicy($.NSApplicationActivationPolicyRegular);   // Dock icon while running; clicking it shows the panel
   loadState();
   ctrl = $.BSideController.alloc.init;
 

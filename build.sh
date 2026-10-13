@@ -15,7 +15,7 @@ osacompile -l JavaScript -s -o "$APP" src/engine.js
 cp src/panel.html "$APP/Contents/Resources/"
 
 pb() { /usr/libexec/PlistBuddy -c "$1" "$PLIST" 2>/dev/null || true; }
-pb "Delete :LSUIElement";              pb "Add :LSUIElement bool true"
+pb "Delete :LSUIElement"
 pb "Set :CFBundleIdentifier com.feldberg.bside" ; pb "Add :CFBundleIdentifier string com.feldberg.bside"
 pb "Delete :CFBundleDisplayName";      pb "Add :CFBundleDisplayName string B-Side"
 pb "Delete :CFBundleShortVersionString"; pb "Add :CFBundleShortVersionString string $VERSION"
