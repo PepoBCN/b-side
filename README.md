@@ -2,7 +2,7 @@
 
 A free Mac app that plays a YouTube video, playlist or mix as your desktop wallpaper, on every screen and every desktop, with sound. Switch it to screensaver mode to cover everything, or hand the video back to Chrome at the second it had reached.
 
-[Download the latest release](https://github.com/PepoBCN/b-side/releases/latest) · macOS 13 or later · MIT licence
+[Website](https://pepobcn.github.io/b-side/) · [Download the latest release](https://github.com/PepoBCN/b-side/releases/latest/download/B-Side.zip) · macOS 13 or later · MIT licence
 
 ## What it does
 
