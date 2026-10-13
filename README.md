@@ -2,7 +2,7 @@
 
 A free Mac app that plays a YouTube video, playlist or mix as your desktop wallpaper, on every screen and every desktop, with sound. Switch it to screensaver mode to cover everything, or hand the video back to Chrome at the second it had reached.
 
-[Website](https://pepobcn.github.io/b-side/) · [Download the latest release](https://github.com/PepoBCN/b-side/releases/latest/download/B-Side.zip) · macOS 13 or later · MIT licence
+[Website](https://bsideapp.netlify.app/) · [Download the latest release](https://github.com/PepoBCN/b-side/releases/latest/download/B-Side.zip) · macOS 13 or later · MIT licence
 
 ## What it does
 
@@ -25,7 +25,7 @@ A free Mac app that plays a YouTube video, playlist or mix as your desktop wallp
 4. The first time B-Side takes a video from Chrome, macOS asks whether it may control Google Chrome. Click **Allow**.
 5. For the keyboard shortcuts to work in other apps, macOS asks for Accessibility access. Click **Open System Settings** and switch on **B-Side** under **Privacy & Security > Accessibility**. The panel shows a reminder with a button until you do. B-Side picks it up straight away, no restart needed.
 
-To start from the exact second you were at in Chrome, rather than the start of the video, turn on Chrome's **View > Developer > Allow JavaScript from Apple Events**. Going back to Chrome is always exact.
+Optional: turn on Chrome's **View > Developer > Allow JavaScript from Apple Events**. B-Side can then pause YouTube in Chrome when it starts playing, and start from the exact second you were at. Going back to Chrome is always exact.
 
 ## Using it
 

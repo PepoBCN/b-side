@@ -18,20 +18,24 @@ state = {
         {"id": "phaJXp_zMYM", "list": None, "title": "The Notorious B.I.G. - Big Poppa (Official Music Video)"},
         {"id": "5NPBIwQyPWE", "list": None, "title": "Avril Lavigne - Complicated (Official Video)"},
     ],
-    "chrome": None, "canResume": True, "version": "1.1", "players": 2, "followers": ["_JZom_gVfuw"], "panelOpen": True,
+    "chrome": None, "canResume": True, "version": "1.2", "chromeJs": True, "shortcuts": {"enabled": True, "trusted": True}, "players": 2, "followers": ["_JZom_gVfuw"], "panelOpen": True,
 }
 chrome = """
 html { background: #232325; }
 body::before { content: ""; position: fixed; left: 14px; top: 14px; width: 12px; height: 12px; border-radius: 50%;
   background: #ff5f57; box-shadow: 20px 0 #febc2e, 40px 0 #28c840; }
 """
+# The hero desktop on the site plays a public-domain 1940s Soundie, so its panel shows that.
+hero = json.loads(json.dumps(state))
+hero["now"].update({"id": None, "title": "A Jazz Etude (1940s Soundie)", "author": "Castle Films", "t": 22, "d": 160, "list": False})
+poster = (root / "docs/assets/hero-poster.jpg").as_uri()
 with sync_playwright() as p:
     b = p.chromium.launch(channel="chrome")
-    for name, h, full in (("panel", 700, False), ("panel-full", 700, True)):
+    for name, h, full, st in (("panel", 700, False, state), ("panel-full", 700, True, state), ("panel-hero", 700, False, hero)):
         pg = b.new_page(viewport={"width": 380, "height": h}, device_scale_factor=2)
         pg.goto((root / "src/panel.html").as_uri())
-        pg.add_style_tag(content=chrome)
-        pg.evaluate("s => window.render(s)", state)
+        pg.add_style_tag(content=chrome + (f'#np-thumb {{ background-image: url("{poster}") !important; background-size: cover !important; }}' if st is hero else ""))
+        pg.evaluate("s => window.render(s)", st)
         pg.wait_for_timeout(5000)
         pg.screenshot(path=str(root / f"docs/assets/{name}.png"), full_page=full)
     b.close()
