@@ -293,6 +293,7 @@ function start(url, m) {
   pausedBy = null;
   stillChecked = null; stillRun = 0;
   if (m) mode = m;
+  pauseChrome();
   if (!on) { on = true; build(true); }
   else {
     // Same screens, new video: reload in place.
@@ -437,6 +438,28 @@ function frontChromeTab() {
   return null;
 }
 
+// When B-Side starts playing, anything YouTube in Chrome pauses, so only one thing plays.
+// This needs Chrome's View > Developer > Allow JavaScript from Apple Events; without it the panel says how.
+var chromeJs = true;
+function pauseChrome() {
+  if (!chromeRunning()) return;
+  try {
+    const ws = Application('Google Chrome').windows();
+    for (let i = 0; i < ws.length; i++) {
+      const tabs = ws[i].tabs();
+      for (let j = 0; j < tabs.length; j++) {
+        if (!/^https:\/\/(www\.|m\.|music\.)?youtube\.com\//.test(tabs[j].url())) continue;
+        try {
+          tabs[j].execute({ javascript: 'document.querySelectorAll("video,audio").forEach(function(v){v.pause()});1' });
+          chromeJs = true;
+        } catch (e) {
+          if (/turned off/i.test(String(e))) { chromeJs = false; return; }
+        }
+      }
+    }
+  } catch (e) { log('pauseChrome: ' + e); }
+}
+
 function takeFromChrome(m, found) {
   found = found || findChromeTab();
   if (!found) { setError('No YouTube video open in Chrome.'); return; }
@@ -519,6 +542,11 @@ function command(raw) {
       case 'mode': command(arg); break;
       case 'on': case 'chrome': takeFromChrome(arg || mode); break;
       case 'url': start(arg, mode); break;
+      case 'pasteclip': {
+        const clip = ObjC.unwrap($.NSPasteboard.generalPasteboard.stringForType($.NSPasteboardTypeString)) || '';
+        if (/youtu\.?be/.test(clip)) start(clip.trim(), mode); else setError('The clipboard has no YouTube link.');
+        break;
+      }
       case 'resume': if (last) start(last.url, 'wallpaper'); break;
       case 'recent': { const r = recents[Number(arg)]; if (r) start(watchUrl(r.id, r.list, 0, -1), mode); break; }
       case 'forget': recents = []; saveState(); break;
@@ -624,7 +652,9 @@ ObjC.registerSubclass({
     'screensChanged:': { types: ['void', ['id']], implementation: function () { try { build(false); } catch (e) {} } },
     'locked:': { types: ['void', ['id']], implementation: function () { smartPause('lock', true); } },
     'unlocked:': { types: ['void', ['id']], implementation: function () { smartPause('lock', false); } },
-    'tick:': { types: ['void', ['id']], implementation: function () { onTick(); } }
+    'tick:': { types: ['void', ['id']], implementation: function () { onTick(); } },
+    'showPanel:': { types: ['void', ['id']], implementation: function () { togglePanel(true); } },
+    'quitApp:': { types: ['void', ['id']], implementation: function () { command('quit'); } }
   }
 });
 
@@ -675,6 +705,7 @@ function togglePanel(forceShow) {
   if (mode === 'screensaver') setMode('wallpaper');
   $.NSApplication.sharedApplication.activateIgnoringOtherApps(true);
   panel.makeKeyAndOrderFront(null);
+  panel.makeFirstResponder(panelWeb);   // keys and Edit > Paste go to the panel page
   refreshChrome();
   pushPanel();
 }
@@ -694,6 +725,7 @@ function panelState() {
     version: VERSION, players: views.length,
     followers: views.slice(1).map(function (v) { try { return JSON.parse(ObjC.unwrap(v.title)).id || null; } catch (e) { return null; } }),
     panelOpen: !!(panel && panel.isVisible),
+    chromeJs: chromeJs,
     shortcuts: { enabled: settings.shortcuts, trusted: axTrusted, global: !!globalMonitor, local: !!localMonitor }
   };
   return state;
@@ -753,6 +785,26 @@ function firstInstance() {
   return null;
 }
 
+// A normal app menu and Edit menu. The panel's text box needs Edit > Paste for ⌘V to work.
+function buildMenu() {
+  const bar = $.NSMenu.alloc.init;
+  function sub(title, items) {
+    const top = $.NSMenuItem.alloc.init;
+    const menu = $.NSMenu.alloc.initWithTitle(title);
+    items.forEach(function (it) {
+      if (!it) { menu.addItem($.NSMenuItem.separatorItem); return; }
+      const mi = menu.addItemWithTitleActionKeyEquivalent(it[0], it[1], it[2] || '');
+      if (it[3]) mi.keyEquivalentModifierMask = it[3];
+      if (it[4]) mi.target = it[4];
+    });
+    top.submenu = menu;
+    bar.addItem(top);
+  }
+  sub(APP_NAME, [['Show Panel', 'showPanel:', ',', 0, ctrl], null, ['Hide ' + APP_NAME, 'hide:', 'h'], null, ['Quit ' + APP_NAME, 'quitApp:', 'q', 0, ctrl]]);
+  sub('Edit', [['Undo', 'undo:', 'z'], ['Redo', 'redo:', 'Z'], null, ['Cut', 'cut:', 'x'], ['Copy', 'copy:', 'c'], ['Paste', 'paste:', 'v'], ['Select All', 'selectAll:', 'a']]);
+  $.NSApplication.sharedApplication.mainMenu = bar;
+}
+
 function run() {
   const app = $.NSApplication.sharedApplication;
   const first = firstInstance();
@@ -766,6 +818,7 @@ function run() {
   app.setActivationPolicy($.NSApplicationActivationPolicyRegular);   // Dock icon while running; clicking it shows the panel
   loadState();
   ctrl = $.BSideController.alloc.init;
+  buildMenu();
 
   item = $.NSStatusBar.systemStatusBar.statusItemWithLength($.NSVariableStatusItemLength);
   item.autosaveName = 'BSide';

@@ -6,7 +6,7 @@
 # Needs only what ships with macOS: osacompile, PlistBuddy, qlmanage, sips, iconutil, codesign.
 set -e
 cd "${0:A:h}"
-VERSION="1.1"
+VERSION="1.2"
 APP="build/B-Side.app"
 PLIST="$APP/Contents/Info.plist"
 rm -rf build && mkdir -p build

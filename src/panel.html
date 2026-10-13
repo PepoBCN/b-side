@@ -98,7 +98,7 @@ select { font: inherit; color: var(--text); background: var(--faint); border: 1p
 .recent { text-align: left; border-radius: 10px; padding: 0; overflow: hidden; background: var(--card); border: 1px solid var(--line); }
 .recent:hover { border-color: rgba(255,255,255,.3); }
 .recent .thumb { border-radius: 0; }
-.recent div.t { padding: 6px 8px; font-size: 11.5px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 36px; }
+.recent div.t { padding: 6px 8px; font-size: 11.5px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: calc(2.6em + 12px); }
 .empty { color: var(--muted); font-size: 12px; padding: 4px 2px; }
 
 .lead { color: var(--muted); font-size: 12.5px; margin: 0 0 10px; }
@@ -118,6 +118,7 @@ kbd { font: 10.5px ui-monospace, monospace; background: var(--faint); border-rad
 </header>
 
 <div id="banner" class="banner hidden"></div>
+<div id="chromejs" class="notice hidden"><span class="grow">Chrome is still playing YouTube. To let B-Side pause it, turn on View &gt; Developer &gt; Allow JavaScript from Apple Events in Chrome.</span></div>
 <div id="ax" class="notice hidden"><span class="grow">Keyboard shortcuts need Accessibility access. Tick B-Side in the list.</span><button class="btn" data-cmd="axsettings">Open Settings</button></div>
 
 <!-- playing -->
@@ -238,6 +239,7 @@ window.render = function (s) {
   const msg = s.error || (s.pausedBy === 'lock' ? 'Paused while the Mac was locked.' : s.pausedBy === 'battery' ? 'Paused on battery.' : '');
   $('banner').textContent = msg;
   $('banner').classList.toggle('hidden', !msg);
+  $('chromejs').classList.toggle('hidden', s.chromeJs !== false);
   const sc = s.shortcuts || {};
   $('ax').classList.toggle('hidden', !(sc.enabled && !sc.trusted));
   $('keys').classList.toggle('hidden', !sc.enabled);
@@ -331,12 +333,16 @@ document.querySelectorAll('.link-form').forEach((f) => f.addEventListener('submi
   if (v) { send('url:' + v); input.value = ''; input.blur(); }
 }));
 
-// ⌘V anywhere outside a text box plays a pasted YouTube link straight away.
-document.addEventListener('paste', (e) => {
-  if (e.target.tagName === 'INPUT' && e.target.type === 'text') return;
-  const v = (e.clipboardData.getData('text') || '').trim();
-  if (/youtu\.?be/.test(v)) { e.preventDefault(); send('url:' + v); }
-});
+// ⌘V outside the link box: the app reads the clipboard itself (WebKit only pastes into a text box).
+// Pasting into the box plays a YouTube link straight away, no need to press Play.
+document.addEventListener('keydown', (e) => {
+  if (!e.metaKey || e.key.toLowerCase() !== 'v' || (e.target.tagName === 'INPUT' && e.target.type === 'text')) return;
+  e.preventDefault();
+  send('pasteclip');
+}, true);
+document.querySelectorAll('.link-form input').forEach((input) => input.addEventListener('paste', () => {
+  setTimeout(() => { if (/youtu\.?be/.test(input.value)) input.form.requestSubmit(); }, 0);
+}));
 
 document.addEventListener('keydown', (e) => {
   if (e.target.tagName === 'INPUT' && e.target.type !== 'range' && e.target.type !== 'checkbox') return;
