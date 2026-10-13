@@ -77,9 +77,10 @@ img { max-width: 100%; display: block; }
 .desk { position: relative; aspect-ratio: 16 / 10; overflow: hidden; background: #1a1a1d; container-type: size;
   border: 1px solid var(--line-2); }
 .desk .wall { position: absolute; inset: 0; background: linear-gradient(135deg, #2a2230, #121214 60%); }
-.desk .video { position: absolute; inset: 0; overflow: hidden; background: #000;
+.desk .video { position: absolute; inset: 0; overflow: hidden; container-type: size; background: #000 center/cover no-repeat;
   transition: inset .55s cubic-bezier(.2,.7,.2,1), border-radius .55s; }
-.desk .video video { width: 100%; height: 100%; object-fit: cover; display: block; filter: contrast(1.05); }
+.desk .video iframe { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); border: 0; pointer-events: none;
+  width: max(100cqw, 177.78cqh); height: max(100cqh, 56.25cqw); }
 .desk .dim { position: absolute; inset: 0; background: #000; opacity: .18; pointer-events: none; transition: opacity .4s; }
 .menubar { position: absolute; left: 0; right: 0; top: 0; height: 3.4cqh; background: rgba(20,20,22,.55); backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px); display: flex; align-items: center; gap: 1.6cqw; padding: 0 1.4cqw; font: 600 1.15cqw/1 -apple-system, sans-serif;
@@ -169,7 +170,7 @@ section.block { padding: clamp(64px, 9vw, 120px) 0 0; }
 /* screens */
 .screens { display: grid; grid-template-columns: 1.25fr 1fr; gap: clamp(12px, 3vw, 36px); align-items: end; }
 .scr { margin: 0; }
-.scr .glass { aspect-ratio: 16 / 10; border: 1px solid var(--line-2); background: #000 url("assets/hero-poster.jpg") center/cover; position: relative; }
+.scr .glass { aspect-ratio: 16 / 10; border: 1px solid var(--line-2); background: #000 url("https://i.ytimg.com/vi/_JZom_gVfuw/maxresdefault.jpg") center/cover; position: relative; }
 .scr .glass::after { content: ""; position: absolute; inset: 0; background: rgba(0,0,0,.15); }
 .scr .stand { width: 18%; height: 18px; margin: 0 auto; border: 1px solid var(--line-2); border-top: 0; }
 .scr figcaption { display: flex; justify-content: space-between; gap: 12px; margin-top: 14px; }
@@ -270,16 +271,16 @@ footer a { color: var(--paper); }
       </div>
 
       <div class="stage">
-        <div class="desk" id="desk" data-mode="wallpaper" role="img" aria-label="A Mac desktop with a 1940s jazz film playing as the wallpaper behind open windows">
+        <div class="desk" id="desk" data-mode="wallpaper" role="img" aria-label="A Mac desktop with a music video playing as the wallpaper behind open windows">
           <div class="wall"></div>
           <div class="chrome" aria-hidden="true">
-            <div class="tabs"><span class="tl"><i></i><i></i><i></i></span><span class="tab">A Jazz Etude (1940s Soundie)</span></div>
-            <div class="url">youtube.com/watch?v=…&amp;t=22s</div>
+            <div class="tabs"><span class="tl"><i></i><i></i><i></i></span><span class="tab">The Notorious B.I.G. - Juicy (Official Video)</span></div>
+            <div class="url">youtube.com/watch?v=_JZom_gVfuw&amp;t=97s</div>
           </div>
-          <div class="video">
-            <video autoplay muted loop playsinline preload="auto" poster="assets/hero-poster.jpg" aria-hidden="true">
-              <source src="assets/hero.mp4" type="video/mp4">
-            </video>
+          <div class="video" style="background-image:url('https://i.ytimg.com/vi/_JZom_gVfuw/maxresdefault.jpg')">
+            <iframe id="yt" title="Demo video: The Notorious B.I.G. - Juicy" tabindex="-1" allow="autoplay; encrypted-media"
+              referrerpolicy="strict-origin-when-cross-origin"
+              src="https://www.youtube-nocookie.com/embed/_JZom_gVfuw?autoplay=1&amp;mute=1&amp;list=RD_JZom_gVfuw&amp;controls=0&amp;rel=0&amp;playsinline=1&amp;iv_load_policy=3&amp;disablekb=1&amp;start=20&amp;cc_load_policy=0&amp;enablejsapi=1"></iframe>
           </div>
           <div class="dim"></div>
           <div class="menubar" aria-hidden="true"><span></span><span>Finder</span><span>File</span><span>Edit</span><span>View</span><span>Go</span><span class="right"><span>♫</span><span>Tue 13 Oct</span><span>21:47</span></span></div>
@@ -290,14 +291,14 @@ taking the video open in Chrome
 <span>$</span> <b>bside status</b>
 { "mode": "<u>wallpaper</u>",
   "screens": 2,
-  "now": "A Jazz Etude",
+  "now": "Juicy (Official Video)",
   "playing": true }</pre>
           </div>
           <div class="win notes" aria-hidden="true">
             <div class="tl"><i></i><i></i><i></i></div>
             <p>Tonight</p><s style="width:70%"></s><s style="width:52%"></s><s style="width:61%"></s>
           </div>
-          <img class="panelshot" src="assets/panel-hero.png" alt="" width="380" height="700">
+          <img class="panelshot" src="assets/panel.png" alt="" width="380" height="700">
           <div class="dock" aria-hidden="true"><i style="--c:#3d8bfd"></i><i style="--c:#30d158"></i><i style="--c:#f2f0ea"></i><img src="assets/icon.svg" alt=""><i style="--c:#ffb340"></i><i style="--c:#5e5ce6"></i></div>
         </div>
         <div class="modes" role="tablist" aria-label="Modes">
@@ -349,12 +350,12 @@ taking the video open in Chrome
         <figure class="scr">
           <div class="glass"><span class="tag on"><svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4zM14 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6z"/></svg>Sound</span></div>
           <div class="stand"></div>
-          <figcaption><span class="label"><b>Main</b> screen</span><span class="mono">00:22 / 02:40</span></figcaption>
+          <figcaption><span class="label"><b>Main</b> screen</span><span class="mono">01:37 / 05:02</span></figcaption>
         </figure>
         <figure class="scr">
           <div class="glass"><span class="tag off"><svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9zm13.6 3 2.7-2.7-1.4-1.4-2.7 2.7-2.7-2.7-1.4 1.4 2.7 2.7-2.7 2.7 1.4 1.4 2.7-2.7 2.7 2.7 1.4-1.4z"/></svg>Follows</span></div>
           <div class="stand"></div>
-          <figcaption><span class="label">Second screen</span><span class="mono">00:22 / 02:40</span></figcaption>
+          <figcaption><span class="label">Second screen</span><span class="mono">01:37 / 05:02</span></figcaption>
         </figure>
       </div>
     </div>
@@ -504,7 +505,6 @@ taking the video open in Chrome
 <footer>
   <div class="wrap">
     <span>B-Side · <a href="https://github.com/PepoBCN/b-side">GitHub</a> · <a href="https://github.com/PepoBCN/b-side/blob/main/LICENSE">MIT licence</a></span>
-    <span>Demo footage: <a href="https://archive.org/details/soundie_10">A Jazz Etude</a>, a 1940s Soundie, public domain.</span>
     <span>Not affiliated with, endorsed by or connected to YouTube or Google.</span>
   </div>
 </footer>
@@ -534,6 +534,19 @@ taking the video open in Chrome
     var order = ['wallpaper', 'screensaver', 'chrome'], k = 0;
     auto = setInterval(function () { k = (k + 1) % order.length; show(order[k]); }, 4500);
   }
+})();
+
+// No captions on the demo video. The embed takes player commands by postMessage, so no API script is needed.
+(function () {
+  var yt = document.getElementById('yt'), n = 0;
+  function off() {
+    try {
+      yt.contentWindow.postMessage(JSON.stringify({ event: 'listening', id: 'yt' }), '*');
+      ['captions', 'cc'].forEach(function (m) { yt.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'unloadModule', args: [m] }), '*'); });
+    } catch (e) {}
+    if (++n < 20) setTimeout(off, 1000);
+  }
+  yt.addEventListener('load', off);
 })();
 
 // Copy buttons.
