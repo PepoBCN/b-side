@@ -32,7 +32,7 @@ with sync_playwright() as p:
         pg.goto((root / "src/panel.html").as_uri())
         pg.add_style_tag(content=chrome)
         pg.evaluate("s => window.render(s)", state)
-        pg.wait_for_timeout(1500)
+        pg.wait_for_timeout(5000)
         pg.screenshot(path=str(root / f"docs/assets/{name}.png"), full_page=full)
     b.close()
 print("ok")

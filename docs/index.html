@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>B-Side</title>
+<meta name="description" content="A free Mac app that plays a YouTube video, playlist or mix as your wallpaper, on every screen, with sound.">
+<meta property="og:title" content="B-Side">
+<meta property="og:description" content="Music videos behind your windows. A free, open source Mac app that plays YouTube as your wallpaper, on every screen, with sound.">
+<meta property="og:image" content="https://pepobcn.github.io/b-side/assets/og.png">
+<meta property="og:url" content="https://pepobcn.github.io/b-side/">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #0b0b0b;
+  --ink-2: #141414;
+  --paper: #f2f0ea;
+  --grey: #8d8a83;
+  --line: rgba(242, 240, 234, .14);
+  --line-2: rgba(242, 240, 234, .26);
+  --accent: #ff3b5c;
+  --accent-ink: #fff;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --sans: "Archivo", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+  --gutter: clamp(16px, 4vw, 48px);
+  --max: 1240px;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--ink); color: var(--paper); font: 400 16px/1.55 var(--sans); overflow-x: hidden; }
+a { color: inherit; }
+img { max-width: 100%; display: block; }
+.wrap { max-width: var(--max); margin: 0 auto; padding: 0 var(--gutter); }
+.mono { font-family: var(--mono); font-size: 12px; letter-spacing: .02em; }
+.label { font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--grey); }
+.label b { color: var(--accent); font-weight: 600; }
+
+/* live bar */
+.bar { border-bottom: 1px solid var(--line); font-family: var(--mono); font-size: 12px; }
+.bar .wrap { display: flex; align-items: center; gap: 18px; height: 44px; }
+.bar .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; text-decoration: none; }
+.bar .brand img { width: 22px; height: 22px; border-radius: 6px; }
+.bar .facts { color: var(--grey); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar .facts .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); margin-right: 8px; vertical-align: 0; animation: pulse 2s infinite; }
+.bar .grow { flex: 1; }
+.bar a.dl { color: var(--paper); text-decoration: none; border: 1px solid var(--line-2); padding: 5px 10px; white-space: nowrap; }
+.bar a.dl:hover { border-color: var(--paper); }
+@keyframes pulse { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .bar .facts .dot { animation: none; } }
+
+/* hero */
+.hero { padding: clamp(40px, 7vw, 88px) 0 28px; }
+.hero h1 { font-weight: 800; font-stretch: 62%; font-variation-settings: "wdth" 62; text-transform: uppercase;
+  font-size: clamp(56px, 10.5vw, 148px); line-height: .86; letter-spacing: -.01em; margin: 0; }
+.hero h1 em { font-style: normal; color: var(--accent); }
+.hero .lede { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 28px 48px; align-items: end; margin-top: 28px; }
+.hero p { margin: 0; max-width: 560px; font-size: clamp(16px, 1.6vw, 19px); color: #d9d6cf; }
+.ctas { display: flex; flex-wrap: wrap; gap: 10px; }
+.btn { display: inline-flex; align-items: center; gap: 12px; text-decoration: none; padding: 13px 18px; border: 1px solid var(--line-2);
+  font-weight: 600; font-size: 15px; line-height: 1.15; min-height: 52px; transition: background .15s, border-color .15s; }
+.btn small { display: block; font-family: var(--mono); font-weight: 400; font-size: 11px; color: var(--grey); margin-top: 3px; letter-spacing: .02em; }
+.btn:hover { border-color: var(--paper); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.primary small { color: rgba(255,255,255,.8); }
+.btn.primary:hover { background: #ff5574; border-color: #ff5574; }
+.btn svg { width: 20px; height: 20px; flex: none; fill: currentColor; }
+.soon { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; border: 1px solid var(--line-2); padding: 2px 6px; color: var(--grey); margin-left: 4px; }
+@media (max-width: 760px) { .hero .lede { grid-template-columns: 1fr; } .ctas .btn { flex: 1 1 100%; } }
+
+/* desktop mock */
+.stage { margin-top: clamp(28px, 4vw, 48px); }
+.desk { position: relative; aspect-ratio: 16 / 10; overflow: hidden; background: #1a1a1d; container-type: size;
+  border: 1px solid var(--line-2); }
+.desk .wall { position: absolute; inset: 0; background: linear-gradient(135deg, #2a2230, #121214 60%); }
+.desk .video { position: absolute; inset: 0; overflow: hidden; container-type: size; background: #000 center/cover no-repeat;
+  transition: inset .55s cubic-bezier(.2,.7,.2,1), border-radius .55s; }
+.desk .video iframe { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); border: 0; pointer-events: none;
+  width: max(100cqw, 177.78cqh); height: max(100cqh, 56.25cqw); }
+.desk .dim { position: absolute; inset: 0; background: #000; opacity: .18; pointer-events: none; transition: opacity .4s; }
+.menubar { position: absolute; left: 0; right: 0; top: 0; height: 3.4cqh; background: rgba(20,20,22,.55); backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px); display: flex; align-items: center; gap: 1.6cqw; padding: 0 1.4cqw; font: 600 1.15cqw/1 -apple-system, sans-serif;
+  color: rgba(255,255,255,.92); transition: opacity .4s, transform .4s; z-index: 3; }
+.menubar span:not(:first-child) { font-weight: 400; }
+.menubar .right { margin-left: auto; display: flex; gap: 1.4cqw; font-weight: 400; }
+.dock { position: absolute; left: 50%; bottom: 1.2cqh; transform: translateX(-50%); display: flex; gap: .7cqw; padding: .7cqw;
+  background: rgba(40,40,44,.45); border: 1px solid rgba(255,255,255,.14); border-radius: 1.4cqw; backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px); transition: opacity .4s, transform .4s; z-index: 3; }
+.dock i { width: 3.4cqw; height: 3.4cqw; border-radius: .8cqw; display: block; background: var(--c); }
+.dock img { width: 3.4cqw; height: 3.4cqw; border-radius: .8cqw; }
+.win { position: absolute; background: rgba(28,28,30,.94); border: 1px solid rgba(255,255,255,.12); border-radius: .9cqw; overflow: hidden;
+  box-shadow: 0 2cqw 5cqw rgba(0,0,0,.5); transition: opacity .4s, transform .5s; z-index: 2; }
+.win .tl { height: 2.6cqh; display: flex; align-items: center; gap: .45cqw; padding: 0 .8cqw; border-bottom: 1px solid rgba(255,255,255,.07); }
+.win .tl i { width: .75cqw; height: .75cqw; border-radius: 50%; background: #ff5f57; }
+.win .tl i:nth-child(2) { background: #febc2e; } .win .tl i:nth-child(3) { background: #28c840; }
+.win.term { left: 6cqw; top: 12cqh; width: 34cqw; height: 34cqh; }
+.win.term pre { margin: 0; padding: 1cqw 1.2cqw; font: 1.05cqw/1.55 var(--mono); color: #d8d8d8; white-space: pre; }
+.win.term pre b { color: #7ee787; font-weight: 400; } .win.term pre u { color: var(--accent); text-decoration: none; }
+.win.notes { left: 14cqw; top: 52cqh; width: 28cqw; height: 26cqh; }
+.win.notes p { margin: 0; padding: 1cqw 1.2cqw 0; font: 600 1.25cqw/1.3 -apple-system, sans-serif; color: #eee; }
+.win.notes s { display: block; height: .7cqh; margin: 1.1cqh 1.2cqw 0; background: rgba(255,255,255,.12); border-radius: 2px; text-decoration: none; }
+.panelshot { position: absolute; right: 3cqw; top: 6cqh; width: 21cqw; border-radius: 1cqw; overflow: hidden;
+  box-shadow: 0 2cqw 6cqw rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.1); transition: opacity .4s, transform .5s; z-index: 4; }
+/* chrome window, shown in "Back to Chrome" mode */
+.chrome { position: absolute; left: 16cqw; right: 16cqw; top: 14cqh; bottom: 16cqh; border-radius: .9cqw; background: #202124;
+  border: 1px solid rgba(255,255,255,.14); box-shadow: 0 2cqw 6cqw rgba(0,0,0,.55); opacity: 0; transform: scale(.97);
+  transition: opacity .45s, transform .5s; z-index: 1; }
+.chrome .tabs { height: 4.4cqh; display: flex; align-items: flex-end; gap: .5cqw; padding: 0 1cqw; background: #2b2c2f; border-radius: .9cqw .9cqw 0 0; }
+.chrome .tabs .tl { display: flex; gap: .45cqw; align-self: center; margin-right: 1cqw; }
+.chrome .tabs .tl i { width: .75cqw; height: .75cqw; border-radius: 50%; background: #ff5f57; }
+.chrome .tabs .tl i:nth-child(2) { background: #febc2e; } .chrome .tabs .tl i:nth-child(3) { background: #28c840; }
+.chrome .tab { background: #202124; color: #e8eaed; font: 1cqw/1 -apple-system, sans-serif; padding: 1cqh 1.2cqw; border-radius: .6cqw .6cqw 0 0;
+  max-width: 24cqw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chrome .url { height: 4cqh; margin: .8cqh 1cqw; border-radius: 2cqh; background: #35363a; color: #bdc1c6; font: 1cqw/4cqh -apple-system, sans-serif; padding: 0 1.4cqw; }
+.desk[data-mode="screensaver"] .menubar { opacity: 0; transform: translateY(-100%); }
+.desk[data-mode="screensaver"] .dock { opacity: 0; transform: translate(-50%, 120%); }
+.desk[data-mode="screensaver"] .win, .desk[data-mode="screensaver"] .panelshot { opacity: 0; transform: scale(.96); }
+.desk[data-mode="screensaver"] .dim { opacity: 0; }
+.desk[data-mode="chrome"] .video { inset: 23.8cqh 16.1cqw 16.1cqh 16.1cqw; border-radius: 0 0 .9cqw .9cqw; z-index: 2; }
+.desk[data-mode="chrome"] .dim { opacity: 0; }
+.desk[data-mode="chrome"] .chrome { opacity: 1; transform: none; }
+.desk[data-mode="chrome"] .win, .desk[data-mode="chrome"] .panelshot { opacity: 0; transform: scale(.96); pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .desk * { transition: none !important; } }
+
+.modes { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line-2); border-top: 0; }
+.modes button { appearance: none; background: none; border: 0; color: var(--paper); text-align: left; padding: 16px 18px 18px; cursor: pointer;
+  font: inherit; border-right: 1px solid var(--line); position: relative; }
+.modes button:last-child { border-right: 0; }
+.modes button .label { display: block; margin-bottom: 6px; }
+.modes button strong { display: block; font-weight: 800; font-stretch: 75%; font-variation-settings: "wdth" 75; text-transform: uppercase; font-size: 22px; line-height: 1; }
+.modes button span.d { display: block; color: var(--grey); font-size: 14px; margin-top: 6px; }
+.modes button::after { content: ""; position: absolute; left: 0; right: 0; top: -1px; height: 3px; background: var(--accent); transform: scaleX(0);
+  transform-origin: left; transition: transform .3s; }
+.modes button[aria-selected="true"]::after { transform: none; }
+.modes button[aria-selected="true"] .label { color: var(--accent); }
+.modes button:hover strong { color: #fff; }
+.modes button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+@media (max-width: 760px) {
+  .modes { grid-template-columns: 1fr; }
+  .modes button { border-right: 0; border-bottom: 1px solid var(--line); }
+  .modes button span.d { display: none; }
+}
+
+/* sections */
+section.block { padding: clamp(64px, 9vw, 120px) 0 0; }
+.head { display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 16px 32px; margin-bottom: 36px; }
+.head h2 { margin: 0; font-weight: 800; font-stretch: 62%; font-variation-settings: "wdth" 62; text-transform: uppercase;
+  font-size: clamp(40px, 6vw, 80px); line-height: .9; }
+.head p { margin: 14px 0 0; max-width: 620px; color: #cfccc5; }
+@media (max-width: 760px) { .head { grid-template-columns: 1fr; } }
+
+/* panel */
+.panel-grid { display: grid; grid-template-columns: minmax(0, 400px) minmax(0, 1fr); gap: 32px 64px; align-items: start; }
+.panel-fig { position: relative; margin: 0; }
+.panel-fig img { border-radius: 14px; box-shadow: 0 0 0 1px var(--line-2), 0 30px 80px rgba(0,0,0,.6); }
+.pin { position: absolute; left: -13px; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #fff;
+  font: 600 12px/26px var(--mono); text-align: center; box-shadow: 0 0 0 3px var(--ink); }
+.callouts { list-style: none; margin: 0; padding: 0; counter-reset: c; position: sticky; top: 24px; }
+.callouts li { display: grid; grid-template-columns: 34px 1fr; gap: 14px; padding: 16px 0; border-top: 1px solid var(--line); }
+.callouts li:last-child { border-bottom: 1px solid var(--line); }
+.callouts li::before { counter-increment: c; content: counter(c, decimal-leading-zero); font: 600 12px/1.9 var(--mono); color: var(--accent); }
+.callouts strong { display: block; font-weight: 700; }
+.callouts span { color: var(--grey); font-size: 15px; }
+@media (max-width: 860px) { .panel-grid { grid-template-columns: 1fr; } .panel-fig { max-width: 400px; margin-left: 13px; } .callouts { position: static; } }
+
+/* screens */
+.screens { display: grid; grid-template-columns: 1.25fr 1fr; gap: clamp(12px, 3vw, 36px); align-items: end; }
+.scr { margin: 0; }
+.scr .glass { aspect-ratio: 16 / 10; border: 1px solid var(--line-2); background: #000 url("https://i.ytimg.com/vi/_JZom_gVfuw/maxresdefault.jpg") center/cover; position: relative; }
+.scr .glass::after { content: ""; position: absolute; inset: 0; background: rgba(0,0,0,.15); }
+.scr .stand { width: 18%; height: 18px; margin: 0 auto; border: 1px solid var(--line-2); border-top: 0; }
+.scr figcaption { display: flex; justify-content: space-between; gap: 12px; margin-top: 14px; }
+.scr figcaption .label b { color: var(--accent); }
+.scr .tag { position: absolute; left: 12px; top: 12px; z-index: 1; font: 600 11px/1 var(--mono); text-transform: uppercase; letter-spacing: .06em;
+  background: rgba(0,0,0,.7); padding: 6px 8px; display: flex; align-items: center; gap: 8px; }
+.scr .tag svg { width: 14px; height: 14px; fill: currentColor; }
+.scr .tag.on { color: #fff; } .scr .tag.on svg { fill: var(--accent); }
+.scr .tag.off { color: #bbb; }
+@media (max-width: 640px) { .screens { grid-template-columns: 1fr; } }
+
+/* spec */
+.spec { width: 100%; border-collapse: collapse; }
+.spec th, .spec td { text-align: left; vertical-align: top; padding: 14px 0; border-top: 1px solid var(--line); }
+.spec tr:last-child th, .spec tr:last-child td { border-bottom: 1px solid var(--line); }
+.spec th { width: 220px; padding-right: 24px; font: 600 12px/1.9 var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--grey); }
+.spec td { color: #e4e1da; }
+@media (max-width: 640px) { .spec th, .spec td { display: block; width: auto; } .spec td { border-top: 0; padding-top: 0; } .spec th { padding-bottom: 4px; } }
+
+/* terminal */
+.term-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 32px 64px; align-items: start; }
+.term-grid p { color: #cfccc5; margin: 0 0 14px; }
+.shell { position: relative; background: var(--ink-2); border: 1px solid var(--line-2); }
+.shell pre { margin: 0; padding: 22px 22px 24px; overflow-x: auto; font: 13px/1.85 var(--mono); color: #e4e1da; }
+.shell pre .c { color: var(--grey); }
+.shell pre .p { color: var(--accent); user-select: none; -webkit-user-select: none; }
+.copy { position: absolute; right: 10px; top: 10px; background: var(--ink); color: var(--paper); border: 1px solid var(--line-2); font: 11px var(--mono);
+  padding: 5px 9px; cursor: pointer; text-transform: uppercase; letter-spacing: .06em; }
+.copy:hover { border-color: var(--paper); }
+code, kbd { font-family: var(--mono); font-size: .88em; }
+kbd { border: 1px solid var(--line-2); border-bottom-width: 2px; padding: 1px 6px; border-radius: 4px; background: var(--ink-2); }
+@media (max-width: 860px) { .term-grid { grid-template-columns: minmax(0, 1fr); } }
+.term-grid p.mono { overflow-wrap: anywhere; }
+
+/* install */
+.steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line-2); }
+.steps li { padding: 20px 22px 26px 0; border-right: 1px solid var(--line); }
+.steps li + li { padding-left: 22px; }
+.steps li:last-child { border-right: 0; }
+.steps .n { font: 600 12px var(--mono); color: var(--accent); display: block; margin-bottom: 10px; }
+.steps strong { display: block; font-weight: 800; font-stretch: 75%; font-variation-settings: "wdth" 75; text-transform: uppercase; font-size: 22px; line-height: 1.05; margin-bottom: 8px; }
+.steps p { margin: 0; color: #cfccc5; font-size: 15px; }
+.steps .path { display: block; margin-top: 10px; font: 12px/1.6 var(--mono); color: var(--paper); background: var(--ink-2); border: 1px solid var(--line); padding: 8px 10px; }
+@media (max-width: 960px) { .steps { grid-template-columns: 1fr 1fr; } .steps li:nth-child(2) { border-right: 0; } .steps li:nth-child(3) { padding-left: 0; } .steps li:nth-child(n+3) { border-top: 1px solid var(--line); } }
+@media (max-width: 560px) { .steps { grid-template-columns: 1fr; } .steps li { border-right: 0 !important; padding-left: 0 !important; } .steps li + li { border-top: 1px solid var(--line); } }
+
+/* changelog + footer */
+.log { display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 8px 32px; padding: 22px 0; border-top: 1px solid var(--line); }
+.log:last-of-type { border-bottom: 1px solid var(--line); }
+.log h3 { margin: 0; font: 600 13px/1.6 var(--mono); }
+.log h3 span { display: block; color: var(--grey); font-weight: 400; }
+.log ol { margin: 0; padding-left: 20px; color: #d9d6cf; }
+.log ol li { margin-bottom: 4px; }
+@media (max-width: 640px) { .log { grid-template-columns: 1fr; } }
+
+.outro { padding: clamp(80px, 12vw, 160px) 0 56px; }
+.outro h2 { margin: 0 0 28px; font-weight: 800; font-stretch: 62%; font-variation-settings: "wdth" 62; text-transform: uppercase;
+  font-size: clamp(52px, 9vw, 128px); line-height: .86; }
+footer { border-top: 1px solid var(--line); padding: 22px 0 36px; color: var(--grey); font-family: var(--mono); font-size: 12px; }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 10px 28px; justify-content: space-between; }
+footer a { color: var(--paper); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <div class="wrap">
+    <a class="brand" href="#top"><img src="assets/icon.svg" alt="">B-Side</a>
+    <span class="facts"><span class="dot"></span><span id="ver">v1.1</span> · macOS 13+ · free · open source</span>
+    <span class="grow"></span>
+    <a class="dl" href="https://github.com/PepoBCN/b-side/releases/latest/download/B-Side.zip">Download</a>
+  </div>
+</div>
+
+<main id="top">
+  <section class="hero">
+    <div class="wrap">
+      <h1>Music videos<br>behind your <em>windows.</em></h1>
+      <div class="lede">
+        <p>B-Side plays a YouTube video, playlist or mix as your Mac's wallpaper, on every screen and every desktop, with the sound on. Take what's playing in Chrome, or paste a link.</p>
+        <div class="ctas">
+          <a class="btn primary" href="https://github.com/PepoBCN/b-side/releases/latest/download/B-Side.zip">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 3h2v10.17l3.59-3.58L18 11l-6 6-6-6 1.41-1.41L11 13.17zM5 19h14v2H5z"/></svg>
+            <span>Download for Mac<small><span class="v">v1.1</span> · 1.2 MB · free</small></span>
+          </a>
+          <a class="btn" href="https://github.com/PepoBCN/b-side/releases/latest/download/B-Side.zip" title="B-Side isn't on the Mac App Store yet. This downloads it directly.">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-6v2h3v2H7v-2h3v-2H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm1 2v8h14V7z"/></svg>
+            <span>Mac App Store <span class="soon">Soon</span><small>direct download for now</small></span>
+          </a>
+          <a class="btn" href="https://github.com/PepoBCN/b-side">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02A9.6 9.6 0 0 1 12 6.84a9.6 9.6 0 0 1 2.5.34c1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2z"/></svg>
+            <span>Source on GitHub<small>MIT licence</small></span>
+          </a>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="desk" id="desk" data-mode="wallpaper" role="img" aria-label="A Mac desktop with a music video playing as the wallpaper behind open windows">
+          <div class="wall"></div>
+          <div class="chrome" aria-hidden="true">
+            <div class="tabs"><span class="tl"><i></i><i></i><i></i></span><span class="tab">The Notorious B.I.G. - Juicy (Official Video)</span></div>
+            <div class="url">youtube.com/watch?v=_JZom_gVfuw&amp;t=97s</div>
+          </div>
+          <div class="video" style="background-image:url('https://i.ytimg.com/vi/_JZom_gVfuw/maxresdefault.jpg')">
+            <iframe id="yt" title="Demo video: The Notorious B.I.G. - Juicy" tabindex="-1" loading="lazy" allow="autoplay; encrypted-media"
+              referrerpolicy="strict-origin-when-cross-origin"
+              src="https://www.youtube-nocookie.com/embed/_JZom_gVfuw?autoplay=1&amp;mute=1&amp;loop=1&amp;playlist=_JZom_gVfuw&amp;controls=0&amp;rel=0&amp;playsinline=1&amp;iv_load_policy=3&amp;disablekb=1&amp;start=20&amp;cc_load_policy=0&amp;enablejsapi=1"></iframe>
+          </div>
+          <div class="dim"></div>
+          <div class="menubar" aria-hidden="true"><span></span><span>Finder</span><span>File</span><span>Edit</span><span>View</span><span>Go</span><span class="right"><span>♫</span><span>Tue 13 Oct</span><span>21:47</span></span></div>
+          <div class="win term" aria-hidden="true">
+            <div class="tl"><i></i><i></i><i></i></div>
+<pre><span>$</span> <b>bside on</b>
+taking the video open in Chrome
+<span>$</span> <b>bside status</b>
+{ "mode": "<u>wallpaper</u>",
+  "screens": 2,
+  "now": "Juicy (Official Video)",
+  "playing": true }</pre>
+          </div>
+          <div class="win notes" aria-hidden="true">
+            <div class="tl"><i></i><i></i><i></i></div>
+            <p>Tonight</p><s style="width:70%"></s><s style="width:52%"></s><s style="width:61%"></s>
+          </div>
+          <img class="panelshot" src="assets/panel.png" alt="" width="380" height="700">
+          <div class="dock" aria-hidden="true"><i style="--c:#3d8bfd"></i><i style="--c:#30d158"></i><i style="--c:#f2f0ea"></i><img src="assets/icon.svg" alt=""><i style="--c:#ffb340"></i><i style="--c:#5e5ce6"></i></div>
+        </div>
+        <div class="modes" role="tablist" aria-label="Modes">
+          <button role="tab" aria-selected="true" data-mode="wallpaper"><span class="label">01 Mode</span><strong>Wallpaper</strong><span class="d">Behind every window, on every desktop. The panel shows what's on.</span></button>
+          <button role="tab" aria-selected="false" data-mode="screensaver"><span class="label">02 Mode</span><strong>Screensaver</strong><span class="d">Covers everything, menu bar and Dock too. Click to come back.</span></button>
+          <button role="tab" aria-selected="false" data-mode="chrome"><span class="label">03 Hand-off</span><strong>Back to Chrome</strong><span class="d">Reopens the video in Chrome at the second it had reached.</span></button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="panel">
+    <div class="wrap">
+      <div class="head">
+        <span class="label"><b>01</b> The panel</span>
+        <div><h2>One small remote</h2><p>Click B-Side in the Dock, or open it again, and the panel comes up. Everything it does is in here. Nothing hides in a preferences window.</p></div>
+      </div>
+      <div class="panel-grid">
+        <figure class="panel-fig">
+          <img src="assets/panel-full.png" alt="The B-Side control panel: now playing, transport, modes, link box, look settings, recents and settings" width="380" height="1522" loading="lazy">
+          <span class="pin" style="top:7%">1</span>
+          <span class="pin" style="top:24%">2</span>
+          <span class="pin" style="top:30%">3</span>
+          <span class="pin" style="top:33.2%">4</span>
+          <span class="pin" style="top:41.5%">5</span>
+          <span class="pin" style="top:54.5%">6</span>
+          <span class="pin" style="top:76%">7</span>
+        </figure>
+        <ol class="callouts">
+          <li><div><strong>Now playing</strong><span>Thumbnail, title, channel and whether it's a playlist. Seek by clicking the bar.</span></div></li>
+          <li><div><strong>Transport and volume</strong><span>Previous, play and next. <kbd>Space</kbd>, <kbd>←</kbd> <kbd>→</kbd> and <kbd>M</kbd> work while the panel is open.</span></div></li>
+          <li><div><strong>Wallpaper or screensaver</strong><span>Switch at any time. Screensaver ignores a nudge of the trackpad and ends on a click, a key or a proper mouse move.</span></div></li>
+          <li><div><strong>Paste a link to switch</strong><span>Any video or playlist, even while something plays. <kbd>⌘V</kbd> anywhere in the panel does the same.</span></div></li>
+          <li><div><strong>Look</strong><span>Dim the video so desktop icons stay readable, fill the screen or keep black bars, all screens or the main one only.</span></div></li>
+          <li><div><strong>Recent</strong><span>The last eight things you played. A whole mix counts as one.</span></div></li>
+          <li><div><strong>Settings</strong><span>Skip still-picture tracks, pause on lock or battery, screensaver after idle, open at login.</span></div></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="screens">
+    <div class="wrap">
+      <div class="head">
+        <span class="label"><b>02</b> Every screen</span>
+        <div><h2>Same video, one sound</h2><p>Plug in a second screen and it plays there too, on the same track at the same second. Sound comes from the main screen, so you hear it once.</p></div>
+      </div>
+      <div class="screens">
+        <figure class="scr">
+          <div class="glass"><span class="tag on"><svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4zM14 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6z"/></svg>Sound</span></div>
+          <div class="stand"></div>
+          <figcaption><span class="label"><b>Main</b> screen</span><span class="mono">01:37 / 05:02</span></figcaption>
+        </figure>
+        <figure class="scr">
+          <div class="glass"><span class="tag off"><svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9zm13.6 3 2.7-2.7-1.4-1.4-2.7 2.7-2.7-2.7-1.4 1.4 2.7 2.7-2.7 2.7 1.4 1.4 2.7-2.7 2.7 2.7 1.4-1.4z"/></svg>Follows</span></div>
+          <div class="stand"></div>
+          <figcaption><span class="label">Second screen</span><span class="mono">01:37 / 05:02</span></figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="spec">
+    <div class="wrap">
+      <div class="head">
+        <span class="label"><b>03</b> Spec sheet</span>
+        <div><h2>What it does and needs</h2></div>
+      </div>
+      <table class="spec">
+        <tr><th>Plays</th><td>Any YouTube video, playlist or mix, through YouTube's own embed player.</td></tr>
+        <tr><th>Screens</th><td>Every connected screen and every desktop, or the main screen only. Rebuilds itself when you plug a screen in or out.</td></tr>
+        <tr><th>Sound</th><td>From the main screen. Other screens are muted and follow it.</td></tr>
+        <tr><th>From Chrome</th><td>Takes the YouTube video open in Chrome and closes the tab (you can turn that off). Back to Chrome reopens it at the same second, playlist included.</td></tr>
+        <tr><th>Pauses</th><td>When the Mac locks or the displays sleep, and on battery if you want. Carries on afterwards.</td></tr>
+        <tr><th>Still pictures</th><td>Skips audio uploads that only show an album cover, up to three in a row, and tells you when a mix is all stills.</td></tr>
+        <tr><th>Requires</th><td>macOS 13 or later. Google Chrome for the hand-off. Pasted links work without it.</td></tr>
+        <tr><th>Size</th><td>1.2 MB download. Built with tools that ship with macOS, no Xcode.</td></tr>
+        <tr><th>Privacy</th><td>No account, no analytics, nothing sent anywhere. Settings live in <code>~/Library/Application Support/B-Side</code>.</td></tr>
+        <tr><th>Price</th><td>Free. MIT licence.</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <section class="block" id="terminal">
+    <div class="wrap">
+      <div class="head">
+        <span class="label"><b>04</b> Terminal</span>
+        <div><h2>Or drive it from the shell</h2></div>
+      </div>
+      <div class="term-grid">
+        <div>
+          <p>Everything the panel does, <code>bside</code> does too. It ships in the repo as <code>bin/bside</code>. Link it into your path once.</p>
+          <p class="mono" style="color:var(--grey)">ln -s "$PWD/bin/bside" ~/.local/bin/bside</p>
+        </div>
+        <div class="shell">
+          <button class="copy" type="button" data-copy="cmds">Copy</button>
+<pre id="cmds"><span class="p">$ </span>bside                    <span class="c"># open the panel</span>
+<span class="p">$ </span>bside on                 <span class="c"># take the video open in Chrome</span>
+<span class="p">$ </span>bside on screensaver     <span class="c"># same, straight to screensaver</span>
+<span class="p">$ </span>bside &lt;youtube link&gt;     <span class="c"># play that link</span>
+<span class="p">$ </span>bside off                <span class="c"># back to Chrome at the same second</span>
+<span class="p">$ </span>bside pause | next | prev | mute
+<span class="p">$ </span>bside vol 50 | dim 30 | screens main
+<span class="p">$ </span>bside status             <span class="c"># what's playing, as JSON</span></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="install">
+    <div class="wrap">
+      <div class="head">
+        <span class="label"><b>05</b> Install</span>
+        <div><h2>Four steps, one honest one</h2><p>B-Side isn't notarised by Apple yet, so macOS stops it the first time. Step three is how you let it through. You only do it once.</p></div>
+      </div>
+      <ol class="steps">
+        <li><span class="n">01</span><strong>Download</strong><p><a href="https://github.com/PepoBCN/b-side/releases/latest/download/B-Side.zip">B-Side.zip</a> from the latest release, then unzip it.</p></li>
+        <li><span class="n">02</span><strong>Move it</strong><p>Drag B-Side into Applications and open it.</p></li>
+        <li><span class="n">03</span><strong>Open Anyway</strong><p>macOS says it can't check the app. Go to System Settings, then Privacy &amp; Security, scroll down and click Open Anyway.</p><span class="path">System Settings › Privacy &amp; Security › Open Anyway</span></li>
+        <li><span class="n">04</span><strong>Allow Chrome</strong><p>The first time B-Side takes a video from Chrome, macOS asks if it may control Google Chrome. Click Allow.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="block" id="changelog">
+    <div class="wrap">
+      <div class="head">
+        <span class="label"><b>06</b> Changelog</span>
+        <div><h2>Releases</h2></div>
+      </div>
+      <div class="log">
+        <h3>1.1<span>13 Oct 2026</span></h3>
+        <ol>
+          <li>Paste a video or playlist link while something plays to switch to it.</li>
+          <li>Plain playlist links play.</li>
+          <li>Still-picture tracks are found by looking at the video, so re-uploads are caught too.</li>
+          <li>Screensaver ignores small nudges of the mouse or trackpad.</li>
+          <li>Shows in the Dock while it runs. Only one copy runs at a time.</li>
+          <li>Recent keeps the last eight.</li>
+        </ol>
+      </div>
+      <div class="log">
+        <h3>1.0<span>12 Oct 2026</span></h3>
+        <ol>
+          <li>First public release: wallpaper on every screen with sound, screensaver mode, Chrome hand-off, control panel, pause on lock and battery.</li>
+        </ol>
+      </div>
+      <p class="mono" style="margin-top:18px"><a href="https://github.com/PepoBCN/b-side/releases">All releases and checksums on GitHub</a></p>
+    </div>
+  </section>
+
+  <section class="outro">
+    <div class="wrap">
+      <h2>Put a record<br>on the <em style="font-style:normal;color:var(--accent)">desktop.</em></h2>
+      <div class="ctas">
+        <a class="btn primary" href="https://github.com/PepoBCN/b-side/releases/latest/download/B-Side.zip">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 3h2v10.17l3.59-3.58L18 11l-6 6-6-6 1.41-1.41L11 13.17zM5 19h14v2H5z"/></svg>
+          <span>Download for Mac<small><span class="v">v1.1</span> · 1.2 MB · free</small></span>
+        </a>
+        <a class="btn" href="https://github.com/PepoBCN/b-side/releases/latest/download/B-Side.zip" title="B-Side isn't on the Mac App Store yet. This downloads it directly.">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-6v2h3v2H7v-2h3v-2H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm1 2v8h14V7z"/></svg>
+          <span>Mac App Store <span class="soon">Soon</span><small>direct download for now</small></span>
+        </a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>B-Side · <a href="https://github.com/PepoBCN/b-side">GitHub</a> · <a href="https://github.com/PepoBCN/b-side/blob/main/LICENSE">MIT licence</a></span>
+    <span>Not affiliated with, endorsed by or connected to YouTube or Google.</span>
+  </div>
+</footer>
+
+<script>
+// Mode switcher: the same desktop shows wallpaper, screensaver and the hand-off to Chrome.
+(function () {
+  var desk = document.getElementById('desk');
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.modes [role=tab]'));
+  var auto = null;
+  function show(mode) {
+    desk.setAttribute('data-mode', mode);
+    tabs.forEach(function (t) { t.setAttribute('aria-selected', String(t.dataset.mode === mode)); });
+  }
+  tabs.forEach(function (t, i) {
+    t.addEventListener('click', function () { clearInterval(auto); auto = null; show(t.dataset.mode); });
+    t.addEventListener('keydown', function (e) {
+      var d = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
+      if (!d) return;
+      e.preventDefault();
+      var n = tabs[(i + d + tabs.length) % tabs.length];
+      n.focus(); n.click();
+    });
+  });
+  // Cycle the modes until someone picks one, unless they prefer less motion.
+  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    var order = ['wallpaper', 'screensaver', 'chrome'], k = 0;
+    auto = setInterval(function () { k = (k + 1) % order.length; show(order[k]); }, 4500);
+  }
+})();
+
+// No captions on the demo video. The embed takes player commands by postMessage, so no API script is needed.
+(function () {
+  var yt = document.getElementById('yt'), n = 0;
+  function off() {
+    try {
+      yt.contentWindow.postMessage(JSON.stringify({ event: 'listening', id: 'yt' }), '*');
+      ['captions', 'cc'].forEach(function (m) { yt.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'unloadModule', args: [m] }), '*'); });
+    } catch (e) {}
+    if (++n < 20) setTimeout(off, 1000);
+  }
+  yt.addEventListener('load', off);
+})();
+
+// Copy buttons.
+document.querySelectorAll('.copy').forEach(function (b) {
+  b.addEventListener('click', function () {
+    var text = document.getElementById(b.dataset.copy).innerText.replace(/^\$ /gm, '').replace(/\s+#.*$/gm, '');
+    navigator.clipboard.writeText(text).then(function () { b.textContent = 'Copied'; setTimeout(function () { b.textContent = 'Copy'; }, 1500); });
+  });
+});
+
+// Latest version and size from GitHub, so the page never shows a stale number.
+fetch('https://api.github.com/repos/PepoBCN/b-side/releases/latest').then(function (r) { return r.ok ? r.json() : null; }).then(function (rel) {
+  if (!rel || !rel.tag_name) return;
+  var v = rel.tag_name.replace(/^v?/, 'v');
+  document.getElementById('ver').textContent = v;
+  document.querySelectorAll('.v').forEach(function (el) { el.textContent = v; });
+}).catch(function () {});
+</script>
+</body>
+</html>
