@@ -31,6 +31,8 @@ header h1 { font-size: 15px; font-weight: 650; margin: 0; letter-spacing: -.01em
 .pill.live::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-right: 6px; vertical-align: 1px; }
 
 .banner { background: rgba(255,159,10,.16); color: #ffcc80; border-radius: 10px; padding: 8px 10px; margin-bottom: 10px; font-size: 12px; }
+.notice { display: flex; align-items: center; gap: 10px; background: var(--faint); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; margin-bottom: 10px; font-size: 12px; color: var(--muted); }
+.notice .btn { flex: none; padding: 5px 9px; font-size: 12px; color: var(--text); }
 
 .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px; margin-bottom: 12px; }
 .thumb { position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 10px; overflow: hidden; background: #111 center/cover no-repeat; }
@@ -100,7 +102,9 @@ select { font: inherit; color: var(--text); background: var(--faint); border: 1p
 .empty { color: var(--muted); font-size: 12px; padding: 4px 2px; }
 
 .lead { color: var(--muted); font-size: 12.5px; margin: 0 0 10px; }
-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; color: var(--muted); font-size: 11px; }
+footer { margin-top: 16px; color: var(--muted); font-size: 11px; }
+footer .row { justify-content: space-between; }
+footer .keys { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-bottom: 8px; }
 footer button { color: var(--muted); }
 footer button:hover { color: var(--text); }
 kbd { font: 10.5px ui-monospace, monospace; background: var(--faint); border-radius: 4px; padding: 1px 4px; }
@@ -114,6 +118,7 @@ kbd { font: 10.5px ui-monospace, monospace; background: var(--faint); border-rad
 </header>
 
 <div id="banner" class="banner hidden"></div>
+<div id="ax" class="notice hidden"><span class="grow">Keyboard shortcuts need Accessibility access. Tick B-Side in the list.</span><button class="btn" data-cmd="axsettings">Open Settings</button></div>
 
 <!-- playing -->
 <section id="playing" class="card hidden">
@@ -186,11 +191,15 @@ kbd { font: 10.5px ui-monospace, monospace; background: var(--faint); border-rad
   <div class="item"><label for="s-chrome">Close the Chrome tab when taking a video</label><label class="switch"><input id="s-chrome" type="checkbox" data-set="closeChromeTab"><span></span></label></div>
   <div class="item"><label for="s-resume">Resume the last video when the app opens</label><label class="switch"><input id="s-resume" type="checkbox" data-set="resumeOnLaunch"><span></span></label></div>
   <div class="item"><label for="s-login">Open at login</label><label class="switch"><input id="s-login" type="checkbox" data-set="launchAtLogin"><span></span></label></div>
+  <div class="item"><label for="s-keys">Keyboard shortcuts<span class="hint">⌃⌥B takes the video you're watching in Chrome, or sends it back</span></label><label class="switch"><input id="s-keys" type="checkbox" data-set="shortcuts"><span></span></label></div>
 </div>
 
 <footer>
-  <span><kbd>Space</kbd> play <kbd>←</kbd><kbd>→</kbd> track <kbd>M</kbd> mute</span>
-  <span><span id="version"></span> <button data-cmd="quit">Quit</button></span>
+  <div id="keys" class="keys"><span>Anywhere:</span><span><kbd>⌃⌥B</kbd> Chrome</span><span><kbd>⌃⌥P</kbd> play</span><span><kbd>⌃⌥←</kbd><kbd>⌃⌥→</kbd> track</span><span><kbd>⌃⌥S</kbd> screensaver</span><span><kbd>⌃⌥M</kbd> mute</span></div>
+  <div class="row">
+    <span><kbd>Space</kbd> play <kbd>←</kbd><kbd>→</kbd> track <kbd>M</kbd> mute</span>
+    <span><span id="version"></span> <button data-cmd="quit">Quit</button></span>
+  </div>
 </footer>
 
 <script>
@@ -229,6 +238,9 @@ window.render = function (s) {
   const msg = s.error || (s.pausedBy === 'lock' ? 'Paused while the Mac was locked.' : s.pausedBy === 'battery' ? 'Paused on battery.' : '');
   $('banner').textContent = msg;
   $('banner').classList.toggle('hidden', !msg);
+  const sc = s.shortcuts || {};
+  $('ax').classList.toggle('hidden', !(sc.enabled && !sc.trusted));
+  $('keys').classList.toggle('hidden', !sc.enabled);
 
   $('playing').classList.toggle('hidden', !s.on);
   $('idle').classList.toggle('hidden', s.on);
@@ -329,7 +341,7 @@ document.addEventListener('paste', (e) => {
 document.addEventListener('keydown', (e) => {
   if (e.target.tagName === 'INPUT' && e.target.type !== 'range' && e.target.type !== 'checkbox') return;
   if (e.metaKey && e.key === 'w') { send('hidepanel'); return; }
-  if (!S || !S.on) return;
+  if (e.ctrlKey || e.altKey || e.metaKey || !S || !S.on) return;   // ⌃⌥ keys are the app's shortcuts, not these
   const k = { ' ': 'toggle', ArrowRight: 'next', ArrowLeft: 'prev', m: 'mute', M: 'mute', ArrowUp: 'louder', ArrowDown: 'quieter' }[e.key];
   if (k) { e.preventDefault(); send(k); }
 });
