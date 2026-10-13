@@ -34,7 +34,7 @@
 html { -webkit-text-size-adjust: 100%; }
 body { margin: 0; background: var(--ink); color: var(--paper); font: 400 16px/1.55 var(--sans); overflow-x: hidden; }
 a { color: inherit; }
-img { max-width: 100%; display: block; }
+img { max-width: 100%; height: auto; display: block; }
 .wrap { max-width: var(--max); margin: 0 auto; padding: 0 var(--gutter); }
 .mono { font-family: var(--mono); font-size: 12px; letter-spacing: .02em; }
 .label { font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--grey); }
@@ -97,7 +97,7 @@ img { max-width: 100%; display: block; }
 .win .tl { height: 2.6cqh; display: flex; align-items: center; gap: .45cqw; padding: 0 .8cqw; border-bottom: 1px solid rgba(255,255,255,.07); }
 .win .tl i { width: .75cqw; height: .75cqw; border-radius: 50%; background: #ff5f57; }
 .win .tl i:nth-child(2) { background: #febc2e; } .win .tl i:nth-child(3) { background: #28c840; }
-.win.term { left: 6cqw; top: 12cqh; width: 34cqw; height: 34cqh; }
+.win.term { left: 5cqw; top: 9cqh; width: 32cqw; height: auto; }
 .win.term pre { margin: 0; padding: 1cqw 1.2cqw; font: 1.05cqw/1.55 var(--mono); color: #d8d8d8; white-space: pre; }
 .win.term pre b { color: #7ee787; font-weight: 400; } .win.term pre u { color: var(--accent); text-decoration: none; }
 .win.notes { left: 14cqw; top: 52cqh; width: 28cqw; height: 26cqh; }
@@ -294,11 +294,7 @@ taking the video open in Chrome
   "now": "Juicy (Official Video)",
   "playing": true }</pre>
           </div>
-          <div class="win notes" aria-hidden="true">
-            <div class="tl"><i></i><i></i><i></i></div>
-            <p>Tonight</p><s style="width:70%"></s><s style="width:52%"></s><s style="width:61%"></s>
-          </div>
-          <img class="panelshot" src="assets/panel.png" alt="" width="380" height="700">
+          <img class="panelshot" src="assets/panel.png" alt="" width="380" height="592">
           <div class="dock" aria-hidden="true"><i style="--c:#3d8bfd"></i><i style="--c:#30d158"></i><i style="--c:#f2f0ea"></i><img src="assets/icon.svg" alt=""><i style="--c:#ffb340"></i><i style="--c:#5e5ce6"></i></div>
         </div>
         <div class="modes" role="tablist" aria-label="Modes">

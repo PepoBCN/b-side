@@ -27,7 +27,7 @@ body::before { content: ""; position: fixed; left: 14px; top: 14px; width: 12px;
 """
 with sync_playwright() as p:
     b = p.chromium.launch(channel="chrome")
-    for name, h, full, st in (("panel", 700, False, state), ("panel-full", 700, True, state)):
+    for name, h, full, st in (("panel", 592, False, state), ("panel-full", 700, True, state)):
         pg = b.new_page(viewport={"width": 380, "height": h}, device_scale_factor=2)
         pg.goto((root / "src/panel.html").as_uri())
         pg.add_style_tag(content=chrome)
