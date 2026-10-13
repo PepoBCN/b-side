@@ -18,7 +18,7 @@ A free Mac app that plays a YouTube video, playlist or mix as your desktop wallp
 
 ## Install
 
-1. Download `B-Side-1.0.zip` from [Releases](https://github.com/PepoBCN/b-side/releases/latest) and unzip it.
+1. Download `B-Side.zip` from [Releases](https://github.com/PepoBCN/b-side/releases/latest) and unzip it.
 2. Drag **B-Side** into Applications and open it.
 3. macOS will say it can't check the app, because it isn't notarised by Apple. Go to **System Settings > Privacy & Security**, scroll down and click **Open Anyway**. You only do this once.
 4. The first time B-Side takes a video from Chrome, macOS asks whether it may control Google Chrome. Click **Allow**.

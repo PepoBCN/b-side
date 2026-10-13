@@ -6,7 +6,7 @@
 # Needs only what ships with macOS: osacompile, PlistBuddy, qlmanage, sips, iconutil, codesign.
 set -e
 cd "${0:A:h}"
-VERSION="1.0"
+VERSION="1.1"
 APP="build/B-Side.app"
 PLIST="$APP/Contents/Info.plist"
 rm -rf build && mkdir -p build
@@ -41,9 +41,10 @@ rm -rf "$TMP"
 # Ad-hoc signature with an identifier-only requirement, so macOS keeps the Chrome permission across rebuilds.
 codesign --force --deep -s - -r='designated => identifier "com.feldberg.bside"' "$APP" >/dev/null 2>&1
 if [[ "$1" == "--release" ]]; then
-  ZIP="build/B-Side-$VERSION.zip"
+  # B-Side.zip has no version in its name, so releases/latest/download/B-Side.zip always works.
+  ZIP="build/B-Side.zip"
   ditto -c -k --keepParent "$APP" "$ZIP"
-  shasum -a 256 "$ZIP" | tee "$ZIP.sha256"
+  (cd build && shasum -a 256 B-Side.zip | tee B-Side.zip.sha256)
   exit 0
 fi
 
