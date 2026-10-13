@@ -43,7 +43,7 @@ function log(msg) {
 const DEFAULTS = {
   volume: 80, muted: false, dim: 0, fill: true, screens: 'all',
   pauseOnLock: true, pauseOnBattery: false, idleSaver: 0,
-  resumeOnLaunch: false, launchAtLogin: false, closeChromeTab: true, skipStill: true, shortcuts: true
+  resumeOnLaunch: false, launchAtLogin: false, closeChromeTab: true, skipStill: true, shortcuts: true, useAccount: false
 };
 
 var settings = Object.assign({}, DEFAULTS);
@@ -63,6 +63,7 @@ var chromeTab = null;      // {url, title} of a YouTube tab open in Chrome
 var tick = 0;
 
 // Live ObjC objects must stay referenced or JXA frees them.
+var mainState = null, ytSignedIn = false, signinWin = null, playerHandler = null;   // 'Use my YouTube account' mode
 var ctrl, panelHandler, item, panel, panelWeb, wins = [], views = [], catchers = [], layout = '';
 
 function loadState() {
@@ -225,6 +226,12 @@ function build(force) {
 
     const cfg = $.WKWebViewConfiguration.alloc.init;
     cfg.mediaTypesRequiringUserActionForPlayback = 0;
+    const account = i === 0 && settings.useAccount;
+    if (account) {
+      if (!playerHandler) playerHandler = $.BSidePlayerHandler.alloc.init;
+      cfg.userContentController.addUserScript($.WKUserScript.alloc.initWithSourceInjectionTimeForMainFrameOnly(watchScript(), 0, true));
+      cfg.userContentController.addScriptMessageHandlerName(playerHandler, 'bsideplayer');
+    }
     const web = $.WKWebView.alloc.initWithFrameConfiguration(win.contentView.bounds, cfg);
     web.autoresizingMask = $.NSViewWidthSizable | $.NSViewHeightSizable;
     web.customUserAgent = UA;
@@ -235,7 +242,8 @@ function build(force) {
     win.contentView.addSubview(catcher);
 
     wins.push(win); views.push(web); catchers.push(catcher);
-    web.loadHTMLStringBaseURL(playerPage(current, i > 0), $.NSURL.URLWithString(ORIGIN + '/'));
+    if (account) { mainState = null; web.loadRequest($.NSURLRequest.requestWithURL($.NSURL.URLWithString(accountUrl(current)))); }
+    else web.loadHTMLStringBaseURL(playerPage(current, i > 0), $.NSURL.URLWithString(ORIGIN + '/'));
   }
   applyMode();
 }
@@ -295,6 +303,7 @@ function start(url, m) {
   if (m) mode = m;
   pauseChrome();
   if (!on) { on = true; build(true); }
+  else if (settings.useAccount) build(true);   // the watch page carries its settings in its user script
   else {
     // Same screens, new video: reload in place.
     views.forEach(function (v, i) { v.loadHTMLStringBaseURL(playerPage(current, i > 0), $.NSURL.URLWithString(ORIGIN + '/')); });
@@ -313,7 +322,7 @@ function stop() {
 
 function readMain() {
   try {
-    const st = JSON.parse(ObjC.unwrap(views[0].title));
+    const st = JSON.parse(settings.useAccount ? mainState : ObjC.unwrap(views[0].title));
     if (st && st.id) {
       main = st;
       if (st.title) rememberRecent(st.id, parseUrl(current || '').list, st.title);
@@ -496,6 +505,10 @@ function setSetting(key, value) {
   if (key === 'dim' || key === 'fill') jsAll('setLook(' + settings.dim + ',' + settings.fill + ')');
   if (key === 'screens') build(true);
   if (key === 'skipStill') { stillChecked = null; stillRun = 0; }
+  if (key === 'useAccount') {
+    if (settings.useAccount && !ytSignedIn) openSignin();
+    if (on) { readMain(); if (main.id) current = watchUrl(main.id, parseUrl(current || '').list, main.t, main.i); build(true); }
+  }
   if (key === 'launchAtLogin') writeLoginAgent();
   if (key === 'shortcuts') { if (settings.shortcuts) { axPrompted = false; setupShortcuts(); } else removeShortcuts(); }
   saveState();
@@ -542,6 +555,7 @@ function command(raw) {
       case 'mode': command(arg); break;
       case 'on': case 'chrome': takeFromChrome(arg || mode); break;
       case 'url': start(arg, mode); break;
+      case 'signin': openSignin(); break;
       case 'pasteclip': {
         const clip = ObjC.unwrap($.NSPasteboard.generalPasteboard.stringForType($.NSPasteboardTypeString)) || '';
         if (/youtu\.?be/.test(clip)) start(clip.trim(), mode); else setError('The clipboard has no YouTube link.');
@@ -654,7 +668,12 @@ ObjC.registerSubclass({
     'unlocked:': { types: ['void', ['id']], implementation: function () { smartPause('lock', false); } },
     'tick:': { types: ['void', ['id']], implementation: function () { onTick(); } },
     'showPanel:': { types: ['void', ['id']], implementation: function () { togglePanel(true); } },
-    'quitApp:': { types: ['void', ['id']], implementation: function () { command('quit'); } }
+    'quitApp:': { types: ['void', ['id']], implementation: function () { command('quit'); } },
+    'signinClosed:': { types: ['void', ['id']], implementation: function () {
+      $.NSNotificationCenter.defaultCenter.removeObserverNameObject(ctrl, 'NSWindowWillCloseNotification', signinWin);
+      checkSignedIn();
+      if (on && settings.useAccount) { readMain(); if (main.id) current = watchUrl(main.id, parseUrl(current || '').list, main.t, main.i); build(true); }
+    } }
   }
 });
 
@@ -665,6 +684,123 @@ ObjC.registerSubclass({
       implementation: function (uc, msg) { command(ObjC.unwrap(msg.body)); } }
   }
 });
+
+// ---------------------------------------------------------------- 'Use my YouTube account'
+
+// Opt-in, off by default. The main screen plays YouTube's normal watch page instead of the embed,
+// so a signed-in YouTube Premium account plays without ads (the embed can't see the login:
+// WebKit blocks it as a third-party cookie). A user script shows only the video and reports state.
+ObjC.registerSubclass({
+  name: 'BSidePlayerHandler', protocols: ['WKScriptMessageHandler'],
+  methods: {
+    'userContentController:didReceiveScriptMessage:': { types: ['void', ['id', 'id']],
+      implementation: function (uc, msg) {
+        const body = ObjC.unwrap(msg.body);
+        if (body.indexOf('{"page"') === 0) log('account player: ' + body.slice(0, 200)); else mainState = body;
+      } }
+  }
+});
+
+function accountUrl(url) {
+  const p = parseUrl(url || '');
+  if (!p.id) return 'https://www.youtube.com/playlist?list=' + p.list;
+  return watchUrl(p.id, p.list, p.t, -1);
+}
+
+function watchScript() {
+  const cfg = { volume: settings.volume, muted: settings.muted, dim: settings.dim, fill: settings.fill };
+  return `(function () {
+if (window.top !== window) return;
+var C = ${JSON.stringify(cfg)}, applied = false;
+var css = 'html,body{background:#000!important;overflow:hidden!important}'
+ + '#movie_player{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;z-index:2147483646!important;background:#000!important}'
+ + '#movie_player .html5-video-container,#movie_player video.html5-main-video{position:fixed!important;width:100vw!important;height:100vh!important;left:0!important;top:0!important}'
+ + '#movie_player video.html5-main-video{object-fit:contain!important}body.bs-fill #movie_player video.html5-main-video{object-fit:cover!important}'
+ + '.ytp-chrome-top,.ytp-chrome-bottom,.ytp-gradient-top,.ytp-gradient-bottom,.ytp-ce-element,.ytp-pause-overlay,.ytp-paid-content-overlay,.ytp-cards-teaser,.ytp-iv-player-content,.ytp-caption-window-container,.ytp-spinner,.ytp-watermark,.ytp-endscreen-content,.ytp-autonav-endscreen,.iv-branding,.ytp-suggested-action,.ytp-overlays-container,.ytp-player-content{display:none!important}'
+ + '#bs-dim{position:fixed;inset:0;background:#000;opacity:0;z-index:2147483647;pointer-events:none;transition:opacity .3s}*{cursor:none!important}';
+function P() { var p = document.getElementById('movie_player'); return p && p.getPlayerState ? p : null; }
+window.setLook = function (dim, fill) { C.dim = dim; C.fill = fill; var d = document.getElementById('bs-dim'); if (d) d.style.opacity = dim / 100; if (document.body) document.body.classList.toggle('bs-fill', !!fill); };
+window.toggle = function () { var p = P(); if (p) p.getPlayerState() == 1 ? p.pauseVideo() : p.playVideo(); };
+window.setVol = function (v) { C.volume = v; C.muted = false; var p = P(); if (p) { p.setVolume(v); p.unMute(); } };
+window.setMuted = function (m) { C.muted = m; var p = P(); if (p) m ? p.mute() : p.unMute(); };
+function setup() {
+  if (!document.head || !document.body) return setTimeout(setup, 50);
+  try { window.webkit.messageHandlers.bsideplayer.postMessage(JSON.stringify({ page: location.href.slice(0, 80) })); } catch (e) {}
+  var s = document.createElement('style'); s.textContent = css; document.head.appendChild(s);
+  var d = document.createElement('div'); d.id = 'bs-dim'; document.documentElement.appendChild(d);
+  setLook(C.dim, C.fill);
+}
+setup();
+setInterval(function () {
+  var no = document.querySelector('ytd-consent-bump-v2-lightbox button[aria-label^="Reject"]');
+  if (no) no.click();   // cookie consent: Reject all (essential cookies only), as if clicked
+  var p = P(); if (!p) return;
+  window.player = p;
+  // Show only the player: on the path from <body> down to the player, hide every other element
+  // and pin each container to the whole window. Re-checked each second, as YouTube re-renders.
+  for (var child = p, el = p.parentElement; el && el !== document.documentElement; child = el, el = el.parentElement) {
+    for (var k = 0; k < el.children.length; k++) {
+      var sib = el.children[k];
+      if (sib === child || sib.contains(p)) {   // never hide the player's own branch
+        if (sib.dataset.bsHid) { delete sib.dataset.bsHid; sib.style.removeProperty('display'); }
+        continue;
+      }
+      if (sib.dataset.bsHid || /^(STYLE|SCRIPT|LINK)$/.test(sib.tagName)) continue;
+      sib.dataset.bsHid = '1';
+      sib.style.setProperty('display', 'none', 'important');
+    }
+    if (el.dataset.bsHid) { delete el.dataset.bsHid; el.style.removeProperty('display'); }
+    if (el.dataset.bsPin) continue;
+    el.dataset.bsPin = '1';
+    el.style.cssText += ';position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;max-width:none!important;max-height:none!important;min-width:0!important;min-height:0!important;margin:0!important;padding:0!important;contain:none!important;transform:none!important;filter:none!important;overflow:hidden!important;background:#000!important';
+  }
+  if (!applied) { applied = true; if (C.muted) p.mute(); else { p.unMute(); p.setVolume(C.volume); } p.playVideo(); }
+  try { p.unloadModule('captions'); } catch (e) {}
+  var ok = document.querySelector('yt-confirm-dialog-renderer #confirm-button button, yt-confirm-dialog-renderer #confirm-button');
+  if (ok) ok.click();   // "Video paused. Continue watching?"
+  try {
+    var d = p.getVideoData();
+    window.webkit.messageHandlers.bsideplayer.postMessage(JSON.stringify({ id: d.video_id, title: d.title, author: d.author,
+      t: Math.floor(p.getCurrentTime()), d: Math.floor(p.getDuration()), s: p.getPlayerState(),
+      i: p.getPlaylistIndex ? p.getPlaylistIndex() : -1, err: null, ad: !!document.querySelector('#movie_player.ad-showing') }));
+  } catch (e) {}
+}, 1000);
+})();`;
+}
+
+// A window onto YouTube's sign-in, sharing the players' website data, so the login sticks.
+function openSignin() {
+  if (signinWin && signinWin.isVisible) { signinWin.makeKeyAndOrderFront(null); return; }
+  const vf = $.NSScreen.screens.objectAtIndex(0).visibleFrame;
+  const rect = $.NSMakeRect(vf.origin.x + (vf.size.width - 520) / 2, vf.origin.y + (vf.size.height - 720) / 2, 520, 720);
+  signinWin = $.NSWindow.alloc.initWithContentRectStyleMaskBackingDefer(rect, 1 | 2 | 8, $.NSBackingStoreBuffered, false);
+  signinWin.releasedWhenClosed = false;
+  signinWin.title = 'Sign in to YouTube';
+  const web = $.WKWebView.alloc.initWithFrameConfiguration(signinWin.contentView.bounds, $.WKWebViewConfiguration.alloc.init);
+  web.autoresizingMask = $.NSViewWidthSizable | $.NSViewHeightSizable;
+  web.customUserAgent = UA;
+  signinWin.contentView.addSubview(web);
+  web.loadRequest($.NSURLRequest.requestWithURL($.NSURL.URLWithString(
+    'https://accounts.google.com/ServiceLogin?service=youtube&passive=true&continue=' + encodeURIComponent('https://www.youtube.com/'))));
+  $.NSNotificationCenter.defaultCenter.addObserverSelectorNameObject(ctrl, 'signinClosed:', 'NSWindowWillCloseNotification', signinWin);
+  $.NSApplication.sharedApplication.activateIgnoringOtherApps(true);
+  signinWin.makeKeyAndOrderFront(null);
+}
+
+// Signed in when YouTube's login cookie is in the shared website data.
+function checkSignedIn() {
+  try {
+    $.WKWebsiteDataStore.defaultDataStore.httpCookieStore.getAllCookies(function (cookies) {
+      let found = false;
+      for (let i = 0; i < cookies.count; i++) {
+        const c = cookies.objectAtIndex(i);
+        if (ObjC.unwrap(c.name) === 'LOGIN_INFO' && /youtube\.com$/.test(ObjC.unwrap(c.domain))) found = true;
+      }
+      if (found !== ytSignedIn) log('youtube account: ' + (found ? 'signed in' : 'signed out'));
+      ytSignedIn = found;
+    });
+  } catch (e) { log('checkSignedIn: ' + e); }
+}
 
 function makePanel() {
   const vf = $.NSScreen.screens.objectAtIndex(0).visibleFrame;
@@ -726,6 +862,7 @@ function panelState() {
     followers: views.slice(1).map(function (v) { try { return JSON.parse(ObjC.unwrap(v.title)).id || null; } catch (e) { return null; } }),
     panelOpen: !!(panel && panel.isVisible),
     chromeJs: chromeJs,
+    account: { use: settings.useAccount, signedIn: ytSignedIn, ad: !!(on && settings.useAccount && main.ad) },
     shortcuts: { enabled: settings.shortcuts, trusted: axTrusted, global: !!globalMonitor, local: !!localMonitor }
   };
   return state;
@@ -765,6 +902,7 @@ function onTick() {
     if (on) { readMain(); syncFollowers(); skipStills(); }
     if (on && tick % 5 === 0 && settings.idleSaver > 0 && mode === 'wallpaper' && idleSeconds() >= settings.idleSaver * 60) setMode('screensaver');
     if (on && tick % 30 === 0 && (settings.pauseOnBattery || pausedBy === 'battery')) smartPause('battery', onBattery());
+    if (tick % 30 === 0 && settings.useAccount) checkSignedIn();
     if (settings.shortcuts && !globalMonitor && tick % 3 === 0) setupShortcuts();   // picks up the Allow click without a relaunch
     if (on && tick % 10 === 0 && main.id) { last = { url: watchUrl(main.id, parseUrl(current).list, main.t, main.i) }; saveState(); }
     if (panel && panel.isVisible) { if (tick % 3 === 0) refreshChrome(); pushPanel(); }
@@ -819,6 +957,7 @@ function run() {
   loadState();
   ctrl = $.BSideController.alloc.init;
   buildMenu();
+  checkSignedIn();
 
   item = $.NSStatusBar.systemStatusBar.statusItemWithLength($.NSVariableStatusItemLength);
   item.autosaveName = 'BSide';

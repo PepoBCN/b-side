@@ -192,6 +192,9 @@ kbd { font: 10.5px ui-monospace, monospace; background: var(--faint); border-rad
   <div class="item"><label for="s-chrome">Close the Chrome tab when taking a video</label><label class="switch"><input id="s-chrome" type="checkbox" data-set="closeChromeTab"><span></span></label></div>
   <div class="item"><label for="s-resume">Resume the last video when the app opens</label><label class="switch"><input id="s-resume" type="checkbox" data-set="resumeOnLaunch"><span></span></label></div>
   <div class="item"><label for="s-login">Open at login</label><label class="switch"><input id="s-login" type="checkbox" data-set="launchAtLogin"><span></span></label></div>
+  <div class="item"><label for="s-acct">Use my YouTube account<span id="acct-hint" class="hint">With YouTube Premium, videos play without ads</span></label>
+    <button id="acct-btn" class="btn hidden" data-cmd="signin" style="padding:4px 9px;font-size:12px">Sign in</button>
+    <label class="switch"><input id="s-acct" type="checkbox" data-set="useAccount"><span></span></label></div>
   <div class="item"><label for="s-keys">Keyboard shortcuts<span class="hint">⌃⌥B takes the video you're watching in Chrome, or sends it back</span></label><label class="switch"><input id="s-keys" type="checkbox" data-set="shortcuts"><span></span></label></div>
 </div>
 
@@ -240,6 +243,12 @@ window.render = function (s) {
   $('banner').textContent = msg;
   $('banner').classList.toggle('hidden', !msg);
   $('chromejs').classList.toggle('hidden', s.chromeJs !== false);
+  const ac = s.account || {};
+  $('acct-btn').classList.toggle('hidden', !ac.use);
+  $('acct-btn').textContent = ac.signedIn ? 'Account' : 'Sign in';
+  $('acct-hint').textContent = !ac.use ? 'With YouTube Premium, videos play without ads'
+    : ac.signedIn ? (ac.ad ? 'Signed in, but an ad is playing. Ads stop with Premium.' : 'Signed in. Premium plays without ads.')
+    : 'Sign in once with your YouTube account';
   const sc = s.shortcuts || {};
   $('ax').classList.toggle('hidden', !(sc.enabled && !sc.trusted));
   $('keys').classList.toggle('hidden', !sc.enabled);
