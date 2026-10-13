@@ -12,8 +12,9 @@ A free Mac app that plays a YouTube video, playlist or mix as your desktop wallp
 4. Back to Chrome reopens the video in a normal tab where it had got to, playlist included.
 5. Control panel: now playing with thumbnail, seek bar, previous, play and next, mute and volume, dim, fill or fit, all screens or main only, recents and settings.
 6. Pauses itself when the Mac locks or the displays sleep (and on battery, if you switch that on), then carries on.
-7. Skips the odd "Topic" upload in a mix (audio with a still album cover), and tells you when a whole mix is like that.
-8. Optional: screensaver after 2 to 15 minutes idle, resume the last video when the app opens, open at login.
+7. Skips still-picture tracks in playlists and mixes (audio uploads with one album cover or photo), and tells you when a whole mix is like that.
+8. Paste a video or playlist link at any time, including while something plays, to switch to it. ⌘V anywhere in the panel does the same.
+9. Optional: screensaver after 2 to 15 minutes idle, resume the last video when the app opens, open at login.
 
 ## Install
 
@@ -31,7 +32,7 @@ To start from the exact second you were at in Chrome, rather than the start of t
 3. B-Side sits in the Dock while it runs. Click it, or open the app again, to bring the panel back. The ♫ menu bar icon does the same (if a menu bar manager such as Ice or Bartender hides it, drag it out of the hidden section).
 4. In the panel: <kbd>Space</kbd> play or pause, <kbd>←</kbd> <kbd>→</kbd> change track, <kbd>M</kbd> mute, <kbd>↑</kbd> <kbd>↓</kbd> volume, <kbd>⌘W</kbd> hide.
 
-Mixes look best started from an official music video. A mix started from a "Topic" upload is mostly still album covers.
+Mixes look best started from an official music video. A mix started from an audio upload is mostly still pictures, and B-Side only skips three in a row.
 
 ## Terminal
 

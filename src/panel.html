@@ -137,6 +137,10 @@ kbd { font: 10.5px ui-monospace, monospace; background: var(--faint); border-rad
     <button data-cmd="wallpaper" id="m-wall">Wallpaper</button>
     <button data-cmd="screensaver" id="m-saver">Screensaver</button>
   </div>
+  <form class="url link-form">
+    <input placeholder="Paste a video or playlist link to switch" spellcheck="false">
+    <button class="btn" type="submit">Play</button>
+  </form>
   <div class="btns">
     <button class="btn" data-cmd="tochrome" title="Close the wallpaper and carry on in Chrome from the same second">Back to Chrome</button>
     <button class="btn" data-cmd="stop">Turn off</button>
@@ -155,8 +159,8 @@ kbd { font: 10.5px ui-monospace, monospace; background: var(--faint); border-rad
   </div>
   <p id="no-chrome" class="lead hidden">Open a YouTube video, playlist or mix in Chrome and it will show up here. Or paste a link.</p>
   <button id="resume" class="btn hidden" data-cmd="resume" style="width:100%;margin-top:8px">Resume where I left off</button>
-  <form id="url-form" class="url">
-    <input id="url" placeholder="Paste a YouTube link" spellcheck="false">
+  <form class="url link-form">
+    <input placeholder="Paste a YouTube video or playlist link" spellcheck="false">
     <button class="btn" type="submit">Play</button>
   </form>
 </section>
@@ -174,7 +178,7 @@ kbd { font: 10.5px ui-monospace, monospace; background: var(--faint); border-rad
 
 <h2>Settings</h2>
 <div class="list">
-  <div class="item"><label for="s-still">Skip still-image tracks in mixes<span class="hint">Skips YouTube 'Topic' uploads that only show the album cover</span></label><label class="switch"><input id="s-still" type="checkbox" data-set="skipStill"><span></span></label></div>
+  <div class="item"><label for="s-still">Skip still-picture tracks in playlists<span class="hint">Skips audio uploads that only show an album cover or one photo</span></label><label class="switch"><input id="s-still" type="checkbox" data-set="skipStill"><span></span></label></div>
   <div class="item"><label for="s-lock">Pause when the Mac locks or sleeps</label><label class="switch"><input id="s-lock" type="checkbox" data-set="pauseOnLock"><span></span></label></div>
   <div class="item"><label for="s-batt">Pause on battery</label><label class="switch"><input id="s-batt" type="checkbox" data-set="pauseOnBattery"><span></span></label></div>
   <div class="item"><label>Screensaver after idle</label>
@@ -265,7 +269,7 @@ window.render = function (s) {
   if ($('recents').dataset.key !== key) {
     $('recents').dataset.key = key;
     $('recents').innerHTML = s.recents.length ? '' : '<div class="empty">Videos you play show up here.</div>';
-    s.recents.slice(0, 8).forEach((r, i) => {
+    s.recents.forEach((r, i) => {
       const b = document.createElement('button');
       b.className = 'recent';
       b.title = r.title;
@@ -307,10 +311,19 @@ $('bar').addEventListener('click', (e) => {
   send('seek:' + Math.floor((e.clientX - r.left) / r.width * S.now.d));
 });
 
-$('url-form').addEventListener('submit', (e) => {
+// A link box sits on both the off card and the now-playing card. Playing a link while
+// something is on switches to it.
+document.querySelectorAll('.link-form').forEach((f) => f.addEventListener('submit', (e) => {
   e.preventDefault();
-  const v = $('url').value.trim();
-  if (v) { send('url:' + v); $('url').value = ''; }
+  const input = f.querySelector('input'), v = input.value.trim();
+  if (v) { send('url:' + v); input.value = ''; input.blur(); }
+}));
+
+// ⌘V anywhere outside a text box plays a pasted YouTube link straight away.
+document.addEventListener('paste', (e) => {
+  if (e.target.tagName === 'INPUT' && e.target.type === 'text') return;
+  const v = (e.clipboardData.getData('text') || '').trim();
+  if (/youtu\.?be/.test(v)) { e.preventDefault(); send('url:' + v); }
 });
 
 document.addEventListener('keydown', (e) => {

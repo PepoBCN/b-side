@@ -45,7 +45,8 @@ const DEFAULTS = {
 };
 
 var settings = Object.assign({}, DEFAULTS);
-var recents = [];          // [{id, list, title}]
+const RECENTS_MAX = 8;
+var recents = [];          // [{id, list, title}], newest first, at most RECENTS_MAX
 var last = null;           // {url}
 var on = false;            // wallpaper showing
 var mode = 'wallpaper';    // 'wallpaper' | 'screensaver'
@@ -71,7 +72,7 @@ function loadState() {
   try {
     const s = JSON.parse(ObjC.unwrap($.NSString.stringWithContentsOfFileEncodingError(STATE_FILE, 4, null)));
     settings = Object.assign({}, DEFAULTS, s.settings || {});
-    recents = s.recents || [];
+    recents = (s.recents || []).slice(0, RECENTS_MAX);
     last = s.last || null;
   } catch (e) {}
 }
@@ -110,12 +111,13 @@ function playerPage(url, follower) {
   const q = { enablejsapi: 1, autoplay: 1, controls: 0, cc_load_policy: 0, rel: 0, playsinline: 1, iv_load_policy: 3,
               fs: 0, disablekb: 1, origin: ORIGIN };
   if (p.t) q.start = p.t;
-  if (!follower) {
+  if (!p.id) q.list = p.list;   // a playlist link with no video: start at its first track
+  else if (!follower) {
     if (p.list) q.list = p.list; else { q.loop = 1; q.playlist = p.id; }
   }
-  const src = 'https://www.youtube.com/embed/' + p.id + '?' + Object.keys(q).map(function (k) { return k + '=' + encodeURIComponent(q[k]); }).join('&');
+  const src = 'https://www.youtube.com/embed/' + (p.id || 'videoseries') + '?' + Object.keys(q).map(function (k) { return k + '=' + encodeURIComponent(q[k]); }).join('&');
   const cfg = { id: p.id, list: p.list || '', follower: follower,
-                volume: settings.volume, muted: settings.muted, dim: settings.dim, fill: settings.fill, skipStill: settings.skipStill };
+                volume: settings.volume, muted: settings.muted, dim: settings.dim, fill: settings.fill };
   return `<!doctype html><html><head><meta charset="utf-8"><style>
 html,body{margin:0;height:100%;background:#000;overflow:hidden;cursor:none}
 #wrap{position:fixed;inset:0;overflow:hidden}
@@ -137,15 +139,10 @@ function onYouTubeIframeAPIReady(){
     onError:function(e){err=e.data;if(!C.follower&&C.list)setTimeout(function(){player.nextVideo();},1500);}
   }});
 }
-var stills=0,skipped=null;
-function stillCheck(){if(C.follower||!C.list||!C.skipStill||!ready||player.getPlayerState()!=1)return;var d=player.getVideoData();
-  if(!d.author||d.video_id===skipped)return;
-  if(/ - Topic$/.test(d.author)){if(stills<3){stills++;skipped=d.video_id;player.nextVideo();}}else stills=0;}
-function setSkipStill(b){C.skipStill=b;}
 function report(){try{var d=player.getVideoData();document.title=JSON.stringify({id:d.video_id,title:d.title,author:d.author,
   t:Math.floor(player.getCurrentTime()),d:Math.floor(player.getDuration()),s:player.getPlayerState(),
-  i:player.getPlaylistIndex(),m:player.isMuted(),v:player.getVolume(),err:err,still:stills>=3&&/ - Topic$/.test(d.author||'')});}catch(e){}}
-setInterval(function(){stillCheck();report();},1000);
+  i:player.getPlaylistIndex(),m:player.isMuted(),v:player.getVolume(),err:err});}catch(e){}}
+setInterval(report,1000);
 function toggle(){player.getPlayerState()==1?player.pauseVideo():player.playVideo();}
 function setVol(v){player.setVolume(v);if(v>0)player.unMute();}
 function setMuted(m){m?player.mute():player.unMute();}
@@ -284,12 +281,13 @@ function exitSaver(reason) {
 
 function start(url, m) {
   const p = parseUrl(url || '');
-  if (!p.id) { setError('That link is not a YouTube video.'); return; }
+  if (!p.id && !p.list) { setError('That link is not a YouTube video or playlist.'); return; }
   setError(null);
   current = url;
   main = {};
   playerError = null;
   pausedBy = null;
+  stillChecked = null; stillRun = 0;
   if (m) mode = m;
   if (!on) { on = true; build(true); }
   else {
@@ -316,7 +314,7 @@ function readMain() {
       if (st.title) rememberRecent(st.id, parseUrl(current || '').list, st.title);
       playerError = st.err === 101 || st.err === 150 ? 'The owner of this video blocks playing it outside YouTube.'
                   : st.err ? 'YouTube could not play this video (error ' + st.err + ').'
-                  : st.still ? 'This mix is mostly audio uploads with a still album cover. Start it from an official music video for moving pictures.' : null;
+                  : stillRun >= STILL_MAX && stillCache[st.id] ? 'This mix is mostly audio uploads with a still picture. Start it from an official music video for moving pictures.' : null;
     }
   } catch (e) {}
 }
@@ -326,9 +324,73 @@ function rememberRecent(id, list, title) {
   if (recents.length && (recents[0].list || recents[0].id) === key && recents[0].title === title) return;
   recents = recents.filter(function (r) { return (r.list || r.id) !== key && r.id !== id; });
   recents.unshift({ id: id, list: list, title: title });
-  recents = recents.slice(0, 12);
+  recents = recents.slice(0, RECENTS_MAX);
   saveState();
 }
+
+// ---------------------------------------------------------------- still-picture tracks
+
+// Mixes are full of audio uploads with one still picture. YouTube's three automatic thumbnails
+// (1.jpg, 2.jpg, 3.jpg) come from about a quarter, half and three quarters through a video:
+// if they barely differ, the video is a still. Moving videos score 50 and up, stills under 5.
+// curl fetches them in the background so the panel never stalls.
+const STILL_MAX = 3;           // skip at most this many in a row, so an all-stills mix still plays
+const STILL_DIFF = 10;
+const STILL_DIR = ObjC.unwrap($.NSTemporaryDirectory()) + 'bside-stills';
+var stillCache = {}, stillChecked = null, stillRun = 0, stillJob = null;
+
+function skipStills() {
+  if (!settings.skipStill || !main.id || !parseUrl(current || '').list) return;
+  if (stillJob) { if (!stillJob.task.isRunning) finishStillJob(); return; }
+  if (main.id === stillChecked) return;
+  if (main.id in stillCache || / - Topic$/.test(main.author || '')) { stillChecked = main.id; decideStill(main.id, stillCache[main.id] || / - Topic$/.test(main.author || '')); return; }
+  const id = main.id, dir = STILL_DIR + '/' + id;
+  $.NSFileManager.defaultManager.createDirectoryAtPathWithIntermediateDirectoriesAttributesError(dir, true, $(), null);
+  const args = ['-s', '-m', '8'];
+  [1, 2, 3].forEach(function (n) { args.push('-o', dir + '/' + n + '.jpg', 'https://i.ytimg.com/vi/' + id + '/' + n + '.jpg'); });
+  const task = $.NSTask.alloc.init;
+  task.launchPath = '/usr/bin/curl';
+  task.arguments = $(args);
+  task.launch;
+  stillJob = { id: id, dir: dir, task: task };
+}
+
+function finishStillJob() {
+  const job = stillJob; stillJob = null;
+  let score = null;
+  try {
+    const f = [1, 2, 3].map(function (n) { return frameSample(job.dir + '/' + n + '.jpg'); });
+    if (f[0] && f[1] && f[2]) score = Math.max(frameDiff(f[0], f[1]), frameDiff(f[1], f[2]), frameDiff(f[0], f[2]));
+  } catch (e) { log('still check ' + job.id + ': ' + e); }
+  $.NSFileManager.defaultManager.removeItemAtPathError(job.dir, null);
+  stillCache[job.id] = score !== null && score < STILL_DIFF;
+  if (job.id !== main.id) return;   // the track changed while we looked; check the new one next tick
+  stillChecked = job.id;
+  decideStill(job.id, stillCache[job.id]);
+}
+
+function decideStill(id, still) {
+  if (!still) { stillRun = 0; return; }
+  if (stillRun >= STILL_MAX) return;
+  stillRun++;
+  log('skipping still track ' + id + ' ' + (main.title || ''));
+  jsMain('player.nextVideo()');
+}
+
+// Brightness on a 16 x 12 grid of a thumbnail.
+function frameSample(path) {
+  const data = $.NSData.dataWithContentsOfFile(path);
+  if (data.isNil() || !data.length) return null;
+  const rep = $.NSBitmapImageRep.imageRepWithData(data);
+  if (rep.isNil()) return null;
+  const w = rep.pixelsWide, h = rep.pixelsHigh, out = [];
+  for (let y = 0; y < 12; y++) for (let x = 0; x < 16; x++) {
+    const c = rep.colorAtXY(Math.floor((x + .5) * w / 16), Math.floor((y + .5) * h / 12));
+    out.push(c.isNil() ? 0 : c.brightnessComponent * 255);
+  }
+  return out;
+}
+function frameDiff(a, b) { let s = 0; for (let i = 0; i < a.length; i++) s += Math.abs(a[i] - b[i]); return s / a.length; }
 
 // Keep the other screens on the main screen's video, second and play state.
 function syncFollowers() {
@@ -394,7 +456,7 @@ function setSetting(key, value) {
   if (key === 'muted') jsMain('setMuted(' + settings.muted + ')');
   if (key === 'dim' || key === 'fill') jsAll('setLook(' + settings.dim + ',' + settings.fill + ')');
   if (key === 'screens') build(true);
-  if (key === 'skipStill') jsMain('setSkipStill(' + settings.skipStill + ')');
+  if (key === 'skipStill') { stillChecked = null; stillRun = 0; }
   if (key === 'launchAtLogin') writeLoginAgent();
   saveState();
 }
@@ -573,7 +635,7 @@ function onBattery() {
 function onTick() {
   try {
     tick++;
-    if (on) { readMain(); syncFollowers(); }
+    if (on) { readMain(); syncFollowers(); skipStills(); }
     if (on && tick % 5 === 0 && settings.idleSaver > 0 && mode === 'wallpaper' && idleSeconds() >= settings.idleSaver * 60) setMode('screensaver');
     if (on && tick % 30 === 0 && (settings.pauseOnBattery || pausedBy === 'battery')) smartPause('battery', onBattery());
     if (on && tick % 10 === 0 && main.id) { last = { url: watchUrl(main.id, parseUrl(current).list, main.t, main.i) }; saveState(); }
