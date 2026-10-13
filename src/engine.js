@@ -148,7 +148,7 @@ function report(){try{var d=player.getVideoData();document.title=JSON.stringify(
   t:Math.floor(player.getCurrentTime()),d:Math.floor(player.getDuration()),s:player.getPlayerState(),
   i:player.getPlaylistIndex(),m:player.isMuted(),v:player.getVolume(),err:err});}catch(e){}}
 setInterval(report,1000);
-function toggle(){player.getPlayerState()==1?player.pauseVideo():player.playVideo();}
+function toggle(){var st=player.getPlayerState();st==1||st==3||st==-1?player.pauseVideo():player.playVideo();}
 function setVol(v){player.setVolume(v);if(v>0)player.unMute();}
 function setMuted(m){m?player.mute():player.unMute();}
 function follow(id,t,st){if(!ready)return;var d=player.getVideoData();
@@ -422,6 +422,8 @@ function chromeRunning() {
 
 function findChromeTab() {
   if (!chromeRunning()) return null;
+  const front = frontChromeTab();   // the tab you're looking at wins over any other YouTube tab
+  if (front) return front;
   try {
     const chrome = Application('Google Chrome');
     const ws = chrome.windows();
@@ -710,7 +712,7 @@ var css = 'html,body{background:#000!important;overflow:hidden!important}'
  + '#bs-dim{position:fixed;inset:0;background:#000;opacity:0;z-index:2147483647;pointer-events:none;transition:opacity .3s}*{cursor:none!important}';
 function P() { var p = document.getElementById('movie_player'); return p && p.getPlayerState ? p : null; }
 window.setLook = function (dim, fill) { C.dim = dim; C.fill = fill; var d = document.getElementById('bs-dim'); if (d) d.style.opacity = dim / 100; if (document.body) document.body.classList.toggle('bs-fill', !!fill); };
-window.toggle = function () { var p = P(); if (p) p.getPlayerState() == 1 ? p.pauseVideo() : p.playVideo(); };
+window.toggle = function () { var p = P(); if (!p) return; var st = p.getPlayerState(); st == 1 || st == 3 || st == -1 ? p.pauseVideo() : p.playVideo(); };
 window.setVol = function (v) { C.volume = v; C.muted = false; var p = P(); if (p) { p.setVolume(v); p.unMute(); } };
 window.setMuted = function (m) { C.muted = m; var p = P(); if (p) m ? p.mute() : p.unMute(); };
 function setup() {
@@ -838,7 +840,15 @@ function togglePanel(forceShow) {
   pushPanel();
 }
 
+// Is Chrome making sound right now? macOS power assertions say so without asking Chrome.
+var chromePlaying = false;
+function chromeAudible() {
+  if (!chromeRunning()) return false;
+  try { return /Google Chrome.*Playing audio/.test(sa.doShellScript('pmset -g assertions')); } catch (e) { return false; }
+}
+
 function refreshChrome() {
+  chromePlaying = !chromeJs && on ? chromeAudible() : false;
   const f = on ? null : findChromeTab();
   chromeTab = f ? { url: f.url, title: f.title.replace(/^\(\d+\)\s*/, '').replace(/ - YouTube$/, '') } : null;
 }
@@ -853,7 +863,7 @@ function panelState() {
     version: VERSION, players: views.length,
     followers: views.slice(1).map(function (v) { try { return JSON.parse(ObjC.unwrap(v.title)).id || null; } catch (e) { return null; } }),
     panelOpen: !!(panel && panel.isVisible),
-    chromeJs: chromeJs,
+    chromeJs: chromeJs || !chromePlaying,
     account: { signedIn: ytSignedIn, ad: !!(on && accountBuilt && main.ad) },
     shortcuts: { enabled: settings.shortcuts, trusted: axTrusted, global: !!globalMonitor, local: !!localMonitor }
   };
