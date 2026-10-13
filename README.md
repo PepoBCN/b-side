@@ -8,7 +8,7 @@ A free Mac app that plays a YouTube video, playlist or mix as your desktop wallp
 
 1. Takes the YouTube video playing in Chrome (or a pasted link) and puts it behind every window on all your screens.
 2. Plays the sound from the main screen only. The other screens follow the main one: same video, same second.
-3. Screensaver mode covers every screen, menu bar and Dock included. A click, a key or moving the mouse drops back to wallpaper.
+3. Screensaver mode covers every screen, menu bar and Dock included. A click, a key or a deliberate move of the mouse drops back to wallpaper. A small nudge does not.
 4. Back to Chrome reopens the video in a normal tab where it had got to, playlist included.
 5. Control panel: now playing with thumbnail, seek bar, previous, play and next, mute and volume, dim, fill or fit, all screens or main only, recents and settings.
 6. Pauses itself when the Mac locks or the displays sleep (and on battery, if you switch that on), then carries on.

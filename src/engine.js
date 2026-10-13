@@ -168,7 +168,7 @@ ObjC.registerSubclass({
   name: 'BSideWindow', superclass: 'NSWindow',
   methods: {
     'canBecomeKeyWindow': { types: ['bool', []], implementation: function () { return true; } },
-    'keyDown:': { types: ['void', ['id']], implementation: function () { exitSaver(); } }
+    'keyDown:': { types: ['void', ['id']], implementation: function () { exitSaver('key'); } }
   }
 });
 
@@ -178,11 +178,11 @@ ObjC.registerSubclass({
   methods: {
     'acceptsFirstResponder': { types: ['bool', []], implementation: function () { return true; } },
     'acceptsFirstMouse:': { types: ['bool', ['id']], implementation: function () { return true; } },
-    'mouseDown:': { types: ['void', ['id']], implementation: function () { exitSaver(); } },
-    'rightMouseDown:': { types: ['void', ['id']], implementation: function () { exitSaver(); } },
+    'mouseDown:': { types: ['void', ['id']], implementation: function () { exitSaver('click'); } },
+    'rightMouseDown:': { types: ['void', ['id']], implementation: function () { exitSaver('click'); } },
     'mouseMoved:': { types: ['void', ['id']], implementation: function (ev) {
-      try { if (Math.abs(ev.deltaX) + Math.abs(ev.deltaY) > 4) exitSaver(); } catch (e) {} } },
-    'keyDown:': { types: ['void', ['id']], implementation: function () { exitSaver(); } }
+      try { saverMoved(Math.abs(ev.deltaX) + Math.abs(ev.deltaY)); } catch (e) {} } },
+    'keyDown:': { types: ['void', ['id']], implementation: function () { exitSaver('key'); } }
   }
 });
 
@@ -248,7 +248,7 @@ function applyMode() {
     if (saver) { w.makeKeyAndOrderFront(null); w.makeFirstResponder(catchers[i]); } else w.orderBack(null);
   });
   if (saver) {
-    saverSince = Date.now();
+    saverSince = Date.now(); saverMove = 0;
     if (panel) panel.orderOut(null);
     $.NSApplication.sharedApplication.activateIgnoringOtherApps(true);
     $.NSCursor.setHiddenUntilMouseMoves(true);
@@ -258,12 +258,25 @@ function applyMode() {
 function setMode(m) {
   if (m !== 'wallpaper' && m !== 'screensaver') return;
   if (m === mode) return;
+  log('mode ' + m);
   mode = m;
   if (on) applyMode();
 }
 
-function exitSaver() {
-  if (mode !== 'screensaver' || Date.now() - saverSince < 1500) return;
+// Screensaver mode ignores input for its first few seconds, then ends on a click, a key or a
+// deliberate mouse move. A nudge of the trackpad while walking away doesn't count.
+const SAVER_GRACE_MS = 3000, SAVER_MOVE_PX = 120;
+var saverMove = 0, saverMoveAt = 0;
+function saverMoved(px) {
+  const now = Date.now();
+  if (now - saverMoveAt > 1000) saverMove = 0;
+  saverMoveAt = now;
+  saverMove += px;
+  if (saverMove > SAVER_MOVE_PX) exitSaver('mouse move');
+}
+function exitSaver(reason) {
+  if (mode !== 'screensaver' || Date.now() - saverSince < SAVER_GRACE_MS) return;
+  log('screensaver ended by ' + reason);
   setMode('wallpaper');
 }
 
