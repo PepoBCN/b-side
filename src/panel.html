@@ -353,6 +353,14 @@ document.querySelectorAll('.link-form input').forEach((input) => input.addEventL
   setTimeout(() => { if (/youtu\.?be/.test(input.value)) input.form.requestSubmit(); }, 0);
 }));
 
+// The app's ⌃⌥ shortcuts while the panel is in front (other apps go through the app's global monitor).
+const HOTKEYS = { KeyB: 'chrome', KeyP: 'play', ArrowRight: 'next', ArrowLeft: 'prev', KeyS: 'saver', KeyM: 'mute' };
+document.addEventListener('keydown', (e) => {
+  if (!e.ctrlKey || !e.altKey || e.metaKey || e.shiftKey || !HOTKEYS[e.code] || !S || !S.settings.shortcuts) return;
+  e.preventDefault(); e.stopPropagation();
+  if (!e.repeat) send('hotkey:' + HOTKEYS[e.code]);
+}, true);
+
 document.addEventListener('keydown', (e) => {
   if (e.target.tagName === 'INPUT' && e.target.type !== 'range' && e.target.type !== 'checkbox') return;
   if (e.metaKey && e.key === 'w') { send('hidepanel'); return; }

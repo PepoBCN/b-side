@@ -608,16 +608,9 @@ function checkTrust(prompt) {
 // Install whatever the current trust allows. Safe to call again: it only adds what's missing.
 function setupShortcuts() {
   if (!settings.shortcuts) return;
-  if (!localMonitor) {
-    localMonitor = $.NSEvent.addLocalMonitorForEventsMatchingMaskHandler($.NSEventMaskKeyDown, function (ev) {
-      try {
-        const name = shortcutFor(ev);
-        if (!name) return ev;
-        if (!ev.isARepeat) command('hotkey:' + name);
-        return null;   // swallow it, or the panel and the screensaver react to the bare key too
-      } catch (e) { log('local shortcut: ' + e); return ev; }
-    });
-  }
+  // No local key monitor: a JXA block can't hand the event back, so it swallowed every key typed
+  // into B-Side (the link box couldn't paste). While B-Side is in front, panel.html sends the
+  // same ⌃⌥ shortcuts itself; the global monitor covers every other app.
   if (!checkTrust(!axPrompted && !axTrusted)) {
     if (!axPrompted) { axPrompted = true; saveState(); log('shortcuts: asked for Accessibility access'); }
     return;
