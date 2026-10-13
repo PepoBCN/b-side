@@ -5,9 +5,11 @@
 //   control panel (panel.html, WKScriptMessageHandler "yt")
 //   Dock icon and menu bar icon (both open the panel)
 //   `bside <command>` (distributed notification "bside.cmd")
+//   global keyboard shortcuts (NSEvent monitors, ⌃⌥ + key)
 
 ObjC.import('Cocoa');
 ObjC.import('WebKit');
+ObjC.import('ApplicationServices');   // AXIsProcessTrustedWithOptions
 
 const APP_NAME = 'B-Side';
 const BUNDLE_ID = 'com.feldberg.bside';
@@ -41,13 +43,14 @@ function log(msg) {
 const DEFAULTS = {
   volume: 80, muted: false, dim: 0, fill: true, screens: 'all',
   pauseOnLock: true, pauseOnBattery: false, idleSaver: 0,
-  resumeOnLaunch: false, launchAtLogin: false, closeChromeTab: true, skipStill: true
+  resumeOnLaunch: false, launchAtLogin: false, closeChromeTab: true, skipStill: true, shortcuts: true
 };
 
 var settings = Object.assign({}, DEFAULTS);
 const RECENTS_MAX = 8;
 var recents = [];          // [{id, list, title}], newest first, at most RECENTS_MAX
 var last = null;           // {url}
+var axPrompted = false;    // asked macOS for Accessibility access once already
 var on = false;            // wallpaper showing
 var mode = 'wallpaper';    // 'wallpaper' | 'screensaver'
 var current = null;        // url being played
@@ -74,13 +77,14 @@ function loadState() {
     settings = Object.assign({}, DEFAULTS, s.settings || {});
     recents = (s.recents || []).slice(0, RECENTS_MAX);
     last = s.last || null;
+    axPrompted = !!s.axPrompted;
   } catch (e) {}
 }
 
 function saveState() {
   try {
     $.NSFileManager.defaultManager.createDirectoryAtPathWithIntermediateDirectoriesAttributesError(SUPPORT_DIR, true, $(), null);
-    $(JSON.stringify({ settings: settings, recents: recents, last: last }, null, 1))
+    $(JSON.stringify({ settings: settings, recents: recents, last: last, axPrompted: axPrompted }, null, 1))
       .writeToFileAtomicallyEncodingError(STATE_FILE, true, 4, null);
   } catch (e) {}
 }
@@ -421,8 +425,20 @@ function findChromeTab() {
   return null;
 }
 
-function takeFromChrome(m) {
-  const found = findChromeTab();
+// The tab the user is looking at in Chrome's front window, if it's a YouTube video or playlist.
+function frontChromeTab() {
+  if (!chromeRunning()) return null;
+  try {
+    const ws = Application('Google Chrome').windows();
+    if (!ws.length) return null;
+    const tab = ws[0].activeTab(), u = tab.url();
+    if (/youtube\.com\/(watch|shorts|live|playlist\?)|youtu\.be\//.test(u) && (parseUrl(u).id || parseUrl(u).list)) return { tab: tab, url: u, title: tab.title() };
+  } catch (e) { log('frontChromeTab: ' + e); }
+  return null;
+}
+
+function takeFromChrome(m, found) {
+  found = found || findChromeTab();
   if (!found) { setError('No YouTube video open in Chrome.'); return; }
   let url = found.url;
   // Exact second only if Chrome allows JavaScript from Apple Events (View > Developer).
@@ -458,6 +474,7 @@ function setSetting(key, value) {
   if (key === 'screens') build(true);
   if (key === 'skipStill') { stillChecked = null; stillRun = 0; }
   if (key === 'launchAtLogin') writeLoginAgent();
+  if (key === 'shortcuts') { if (settings.shortcuts) { axPrompted = false; setupShortcuts(); } else removeShortcuts(); }
   saveState();
 }
 
@@ -509,6 +526,8 @@ function command(raw) {
       case 'stop': stop(); break;
       case 'set': { const j = arg.indexOf('='); setSetting(arg.slice(0, j), arg.slice(j + 1)); break; }
       case 'panel': togglePanel(true); break;
+      case 'hotkey': hotkey(arg); break;
+      case 'axsettings': sa.doShellScript('open ' + quoted(AX_SETTINGS_URL)); break;
       case 'status': $(JSON.stringify(panelState(), null, 1)).writeToFileAtomicallyEncodingError(STATUS_FILE, true, 4, null); break;
       case 'hidepanel': if (panel) panel.orderOut(null); break;
       case 'quit': stop(); $.NSApplication.sharedApplication.terminate(null); break;
@@ -519,6 +538,81 @@ function command(raw) {
 
 function chromeOrLast() { return findChromeTab() || last; }
 function takeOrResume(m) { if (findChromeTab()) takeFromChrome(m); else if (last) start(last.url, m); }
+
+// ---------------------------------------------------------------- keyboard shortcuts
+
+// ⌃⌥ + key, anywhere. A global NSEvent monitor sees keys pressed in other apps (needs
+// Accessibility access); a local one sees them while B-Side itself is in front. Matched on the
+// key's position (keyCode) and on ⌃⌥ with no ⇧ or ⌘, so caps lock and the arrows' fn flag don't matter.
+// ⌃⌥Space is macOS's "next input source", hence P for play.
+const SHORTCUTS = { 11: 'chrome', 35: 'play', 124: 'next', 123: 'prev', 1: 'saver', 46: 'mute' };   // B P → ← S M
+const MOD_MASK = 0x1E0000, MOD_CTRL_OPT = 0xC0000;   // ⇧⌃⌥⌘ | ⌃⌥
+const AX_SETTINGS_URL = 'x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility';
+var axTrusted = false, globalMonitor = null, localMonitor = null;
+
+function shortcutFor(ev) {
+  if ((ev.modifierFlags & MOD_MASK) !== MOD_CTRL_OPT) return null;
+  return SHORTCUTS[ev.keyCode] || null;
+}
+
+function checkTrust(prompt) {
+  try {
+    const opts = $.NSDictionary.dictionaryWithObjectForKey($.NSNumber.numberWithBool(!!prompt), 'AXTrustedCheckOptionPrompt');
+    axTrusted = !!$.AXIsProcessTrustedWithOptions(opts);
+  } catch (e) { log('accessibility check: ' + e); axTrusted = false; }
+  return axTrusted;
+}
+
+// Install whatever the current trust allows. Safe to call again: it only adds what's missing.
+function setupShortcuts() {
+  if (!settings.shortcuts) return;
+  if (!localMonitor) {
+    localMonitor = $.NSEvent.addLocalMonitorForEventsMatchingMaskHandler($.NSEventMaskKeyDown, function (ev) {
+      try {
+        const name = shortcutFor(ev);
+        if (!name) return ev;
+        if (!ev.isARepeat) command('hotkey:' + name);
+        return null;   // swallow it, or the panel and the screensaver react to the bare key too
+      } catch (e) { log('local shortcut: ' + e); return ev; }
+    });
+  }
+  if (!checkTrust(!axPrompted && !axTrusted)) {
+    if (!axPrompted) { axPrompted = true; saveState(); log('shortcuts: asked for Accessibility access'); }
+    return;
+  }
+  if (!globalMonitor) {
+    globalMonitor = $.NSEvent.addGlobalMonitorForEventsMatchingMaskHandler($.NSEventMaskKeyDown, function (ev) {
+      try { const name = shortcutFor(ev); if (name && !ev.isARepeat) command('hotkey:' + name); }
+      catch (e) { log('global shortcut: ' + e); }
+    });
+    log('shortcuts: on');
+  }
+}
+
+function removeShortcuts() {
+  if (globalMonitor) { $.NSEvent.removeMonitor(globalMonitor); globalMonitor = null; }
+  if (localMonitor) { $.NSEvent.removeMonitor(localMonitor); localMonitor = null; }
+  log('shortcuts: off');
+}
+
+function hotkey(name) {
+  log('shortcut ' + name);
+  switch (name) {
+    case 'chrome': {
+      // Take the video open in Chrome, or send the wallpaper back to Chrome, or show the panel.
+      const tab = frontChromeTab();
+      if (tab) takeFromChrome(mode, tab);
+      else if (on) backToChrome();
+      else togglePanel(true);
+      break;
+    }
+    case 'play': if (on) command('toggle'); break;
+    case 'next': if (on) command('next'); break;
+    case 'prev': if (on) command('prev'); break;
+    case 'saver': if (on) setMode(mode === 'screensaver' ? 'wallpaper' : 'screensaver'); break;
+    case 'mute': command('mute'); break;
+  }
+}
 
 // ---------------------------------------------------------------- control panel
 
@@ -599,7 +693,8 @@ function panelState() {
     settings: settings, recents: recents, chrome: chromeTab, canResume: !!last,
     version: VERSION, players: views.length,
     followers: views.slice(1).map(function (v) { try { return JSON.parse(ObjC.unwrap(v.title)).id || null; } catch (e) { return null; } }),
-    panelOpen: !!(panel && panel.isVisible)
+    panelOpen: !!(panel && panel.isVisible),
+    shortcuts: { enabled: settings.shortcuts, trusted: axTrusted, global: !!globalMonitor, local: !!localMonitor }
   };
   return state;
 }
@@ -638,6 +733,7 @@ function onTick() {
     if (on) { readMain(); syncFollowers(); skipStills(); }
     if (on && tick % 5 === 0 && settings.idleSaver > 0 && mode === 'wallpaper' && idleSeconds() >= settings.idleSaver * 60) setMode('screensaver');
     if (on && tick % 30 === 0 && (settings.pauseOnBattery || pausedBy === 'battery')) smartPause('battery', onBattery());
+    if (settings.shortcuts && !globalMonitor && tick % 3 === 0) setupShortcuts();   // picks up the Allow click without a relaunch
     if (on && tick % 10 === 0 && main.id) { last = { url: watchUrl(main.id, parseUrl(current).list, main.t, main.i) }; saveState(); }
     if (panel && panel.isVisible) { if (tick % 3 === 0) refreshChrome(); pushPanel(); }
   } catch (e) { log('tick: ' + e); }
@@ -686,6 +782,7 @@ function run() {
   wsnc.addObserverSelectorNameObject(ctrl, 'unlocked:', 'NSWorkspaceScreensDidWakeNotification', $());
   $.NSNotificationCenter.defaultCenter.addObserverSelectorNameObject(ctrl, 'screensChanged:', 'NSApplicationDidChangeScreenParametersNotification', $());
   $.NSTimer.scheduledTimerWithTimeIntervalTargetSelectorUserInfoRepeats(1, ctrl, 'tick:', $(), true);
+  setupShortcuts();
 
   if (settings.resumeOnLaunch && last) start(last.url, 'wallpaper');
   else togglePanel(true);

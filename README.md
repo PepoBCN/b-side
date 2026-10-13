@@ -14,7 +14,8 @@ A free Mac app that plays a YouTube video, playlist or mix as your desktop wallp
 6. Pauses itself when the Mac locks or the displays sleep (and on battery, if you switch that on), then carries on.
 7. Skips still-picture tracks in playlists and mixes (audio uploads with one album cover or photo), and tells you when a whole mix is like that.
 8. Paste a video or playlist link at any time, including while something plays, to switch to it. ⌘V anywhere in the panel does the same.
-9. Optional: screensaver after 2 to 15 minutes idle, resume the last video when the app opens, open at login.
+9. Keyboard shortcuts that work in any app. Watching something on YouTube in Chrome? Press <kbd>⌃⌥B</kbd> and it moves to your desktop.
+10. Optional: screensaver after 2 to 15 minutes idle, resume the last video when the app opens, open at login.
 
 ## Install
 
@@ -22,6 +23,7 @@ A free Mac app that plays a YouTube video, playlist or mix as your desktop wallp
 2. Drag **B-Side** into Applications and open it.
 3. macOS will say it can't check the app, because it isn't notarised by Apple. Go to **System Settings > Privacy & Security**, scroll down and click **Open Anyway**. You only do this once.
 4. The first time B-Side takes a video from Chrome, macOS asks whether it may control Google Chrome. Click **Allow**.
+5. For the keyboard shortcuts to work in other apps, macOS asks for Accessibility access. Click **Open System Settings** and switch on **B-Side** under **Privacy & Security > Accessibility**. The panel shows a reminder with a button until you do. B-Side picks it up straight away, no restart needed.
 
 To start from the exact second you were at in Chrome, rather than the start of the video, turn on Chrome's **View > Developer > Allow JavaScript from Apple Events**. Going back to Chrome is always exact.
 
@@ -31,6 +33,17 @@ To start from the exact second you were at in Chrome, rather than the start of t
 2. With a YouTube video open in Chrome, press **Play as wallpaper** or **Screensaver**. Or paste a link.
 3. B-Side sits in the Dock while it runs. Click it, or open the app again, to bring the panel back. The ♫ menu bar icon does the same (if a menu bar manager such as Ice or Bartender hides it, drag it out of the hidden section).
 4. In the panel: <kbd>Space</kbd> play or pause, <kbd>←</kbd> <kbd>→</kbd> change track, <kbd>M</kbd> mute, <kbd>↑</kbd> <kbd>↓</kbd> volume, <kbd>⌘W</kbd> hide.
+5. Anywhere, in any app (switch off under Settings > Keyboard shortcuts):
+
+| Keys | What it does |
+| --- | --- |
+| <kbd>⌃⌥B</kbd> | If Chrome's front tab is a YouTube video or playlist, play it in B-Side (replacing whatever plays). Otherwise, if B-Side is playing, send it back to Chrome. Otherwise open the panel. |
+| <kbd>⌃⌥P</kbd> | Play or pause |
+| <kbd>⌃⌥→</kbd> <kbd>⌃⌥←</kbd> | Next or previous track |
+| <kbd>⌃⌥S</kbd> | Switch between wallpaper and screensaver |
+| <kbd>⌃⌥M</kbd> | Mute or unmute |
+
+Play and pause is <kbd>⌃⌥P</kbd> because <kbd>⌃⌥Space</kbd> already belongs to macOS (it switches keyboard input source). The keys go by position on the keyboard, so on a layout where B, P, S or M sit elsewhere, use the key where they are on a US keyboard. A window manager such as Rectangle uses <kbd>⌃⌥←</kbd> and <kbd>⌃⌥→</kbd> by default; if it takes them first, change one of the two.
 
 Mixes look best started from an official music video. A mix started from an audio upload is mostly still pictures, and B-Side only skips three in a row.
 
@@ -66,7 +79,8 @@ Everything it needs ships with macOS: `osacompile`, `PlistBuddy`, `qlmanage`, `s
 3. Screensaver mode raises the same windows to screensaver level and puts a view on top that ends it on any input.
 4. `src/panel.html` is the control panel, a web page in a floating window with macOS vibrancy. Buttons post messages to the app through `WKScriptMessageHandler`, and the app pushes state back every second.
 5. The terminal tool sends the same commands over a distributed notification (`bside.cmd`).
-6. The app is signed ad hoc with an identifier-only requirement, so macOS keeps the Chrome permission across rebuilds.
+6. Keyboard shortcuts use `NSEvent` key monitors: a global one for keys pressed in other apps (that's what needs Accessibility access) and a local one for when B-Side is in front. Both send the same commands as the panel.
+7. The app is signed ad hoc with an identifier-only requirement, so macOS keeps the Chrome and Accessibility permissions across rebuilds.
 
 Settings and recents live in `~/Library/Application Support/B-Side/state.json`. Errors go to `~/Library/Logs/B-Side.log`. Nothing is sent anywhere: no account, no analytics.
 
@@ -74,7 +88,7 @@ Settings and recents live in `~/Library/Application Support/B-Side/state.json`. 
 
 1. Taking a video from the browser works with Chrome only for now.
 2. Some videos block playing outside YouTube. The panel says so and playlists skip on to the next track.
-3. No global keyboard shortcuts yet.
+3. The shortcuts can't be changed yet, and the app in front still sees the key press as well.
 
 ## Licence
 
