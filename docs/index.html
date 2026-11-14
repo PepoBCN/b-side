@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>B-Side</title>
-<meta name="description" content="A free Mac app that plays a YouTube video, playlist or mix as your wallpaper, on every screen, with sound.">
+<title>B-Side for Mac and Windows</title>
+<meta name="description" content="A free app for Mac and Windows that plays a YouTube video, playlist or mix as your wallpaper, on every screen, with sound.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="B-Side">
 <meta property="og:title" content="B-Side: music videos behind your windows">
-<meta property="og:description" content="A free Mac app that plays YouTube videos, playlists and mixes as your wallpaper, on every screen, with sound.">
+<meta property="og:description" content="A free app for Mac and Windows that plays YouTube videos, playlists and mixes as your wallpaper, on every screen, with sound.">
 <meta property="og:url" content="https://bsideapp.netlify.app/">
 <meta property="og:image" content="https://bsideapp.netlify.app/assets/og.jpg">
 <meta property="og:image:secure_url" content="https://bsideapp.netlify.app/assets/og.jpg">
@@ -18,7 +18,7 @@
 <meta property="og:image:alt" content="B-Side: music videos behind your windows, with the app's control panel">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="B-Side: music videos behind your windows">
-<meta name="twitter:description" content="A free Mac app that plays YouTube as your wallpaper, on every screen, with sound.">
+<meta name="twitter:description" content="A free app for Mac and Windows that plays YouTube as your wallpaper, on every screen, with sound.">
 <meta name="twitter:image" content="https://bsideapp.netlify.app/assets/og.jpg">
 <link rel="canonical" href="https://bsideapp.netlify.app/">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
@@ -26,6 +26,20 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script>
+// Pick the visitor's platform before first paint. Without JS nothing is hidden and both are shown.
+(function () {
+  var d = document.documentElement, os = 'other';
+  try {
+    var ua = navigator.userAgent || '', pf = (navigator.userAgentData && navigator.userAgentData.platform) || '';
+    if (/windows/i.test(pf) || /Windows/.test(ua)) os = 'win';
+    else if (/^mac/i.test(pf) || /Macintosh/.test(ua)) os = 'mac';
+  } catch (e) {}
+  d.className += ' js';
+  d.setAttribute('data-os', os);
+  d.setAttribute('data-plat', os === 'win' ? 'win' : 'mac');
+})();
+</script>
 <style>
 :root {
   --ink: #0b0b0b;
@@ -60,8 +74,13 @@ img { max-width: 100%; height: auto; display: block; }
 .bar .facts { color: var(--grey); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bar .facts .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); margin-right: 8px; vertical-align: 0; animation: pulse 2s infinite; }
 .bar .grow { flex: 1; }
+.bar .facts { min-width: 0; }
+.bar .dls { display: flex; gap: 8px; }
 .bar a.dl { color: var(--paper); text-decoration: none; border: 1px solid var(--line-2); padding: 5px 10px; white-space: nowrap; }
 .bar a.dl:hover { border-color: var(--paper); }
+html:not([data-os="win"]) .bar a.dl-mac, html[data-os="win"] .bar a.dl-win { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+html[data-os="win"] .bar .dl-win { order: -1; }
+@media (max-width: 760px) { .bar .facts { display: none; } .bar .wrap { gap: 10px; } .bar .long { display: none; } }
 @keyframes pulse { 50% { opacity: .35; } }
 @media (prefers-reduced-motion: reduce) { .bar .facts .dot { animation: none; } }
 
@@ -70,19 +89,24 @@ img { max-width: 100%; height: auto; display: block; }
 .hero h1 { font-weight: 800; font-stretch: 62%; font-variation-settings: "wdth" 62; text-transform: uppercase;
   font-size: clamp(56px, 10.5vw, 148px); line-height: .86; letter-spacing: -.01em; margin: 0; }
 .hero h1 em { font-style: normal; color: var(--accent); }
-.hero .lede { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 28px 48px; align-items: end; margin-top: 28px; }
+.hero .lede { display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px 48px; align-items: end; margin-top: 28px; }
 .hero p { margin: 0; max-width: 560px; font-size: clamp(16px, 1.6vw, 19px); color: #d9d6cf; }
-.ctas { display: flex; flex-wrap: wrap; gap: 10px; }
+.ctas { display: flex; flex-wrap: wrap; gap: 10px 10px; align-items: flex-start; }
+.dlg { display: flex; flex-direction: column; gap: 8px; }
+.dlg .alt { font-family: var(--mono); font-size: 12px; color: var(--grey); }
+.dlg .alt a { color: var(--paper); }
+html[data-os="win"] .dlg-win { order: -1; }
 .btn { display: inline-flex; align-items: center; gap: 12px; text-decoration: none; padding: 13px 18px; border: 1px solid var(--line-2);
   font-weight: 600; font-size: 15px; line-height: 1.15; min-height: 52px; transition: background .15s, border-color .15s; }
 .btn small { display: block; font-family: var(--mono); font-weight: 400; font-size: 11px; color: var(--grey); margin-top: 3px; letter-spacing: .02em; }
 .btn:hover { border-color: var(--paper); }
-.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-.btn.primary small { color: rgba(255,255,255,.8); }
-.btn.primary:hover { background: #ff5574; border-color: #ff5574; }
+.btn.primary, html:not([data-os="win"]) .btn.dl-mac, html[data-os="win"] .btn.dl-win { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.primary small, html:not([data-os="win"]) .btn.dl-mac small, html[data-os="win"] .btn.dl-win small { color: rgba(255,255,255,.8); }
+.btn.primary:hover, html:not([data-os="win"]) .btn.dl-mac:hover, html[data-os="win"] .btn.dl-win:hover { background: #ff5574; border-color: #ff5574; }
 .btn svg { width: 20px; height: 20px; flex: none; fill: currentColor; }
 .soon { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; border: 1px solid var(--line-2); padding: 2px 6px; color: var(--grey); margin-left: 4px; }
-@media (max-width: 760px) { .hero .lede { grid-template-columns: 1fr; } .ctas .btn { flex: 1 1 100%; } }
+@media (max-width: 760px) { .ctas, .dlg { width: 100%; } .ctas > .btn, .dlg > .btn { flex: 1 1 100%; width: 100%; } }
+.hero .demo-note { margin: 14px 0 0; max-width: none; color: var(--grey); font-size: 12px; }
 
 /* desktop mock */
 .stage { margin-top: clamp(28px, 4vw, 48px); }
@@ -139,7 +163,7 @@ img { max-width: 100%; height: auto; display: block; }
 @media (prefers-reduced-motion: reduce) { .desk * { transition: none !important; } }
 
 .modes { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line-2); border-top: 0; }
-.modes button { appearance: none; background: none; border: 0; color: var(--paper); text-align: left; padding: 16px 18px 18px; cursor: pointer;
+.modes button { display: flex; flex-direction: column; justify-content: flex-start; appearance: none; background: none; border: 0; color: var(--paper); text-align: left; padding: 16px 18px 18px; cursor: pointer;
   font: inherit; border-right: 1px solid var(--line); position: relative; }
 .modes button:last-child { border-right: 0; }
 .modes button .label { display: block; margin-bottom: 6px; }
@@ -156,6 +180,19 @@ img { max-width: 100%; height: auto; display: block; }
   .modes button { border-right: 0; border-bottom: 1px solid var(--line); }
   .modes button span.d { display: none; }
 }
+
+/* platform switcher: with JS only the chosen platform shows. Without JS both show, labelled. */
+.switch { display: flex; flex-wrap: wrap; align-items: center; gap: 0 14px; margin: 0 0 28px; font: 600 12px/1 var(--mono); text-transform: uppercase; letter-spacing: .06em; }
+.switch .tabs { display: inline-flex; border: 1px solid var(--line-2); }
+.switch a { padding: 13px 20px; text-decoration: none; color: var(--grey); }
+.switch a + a { border-left: 1px solid var(--line-2); }
+.switch a:hover { color: var(--paper); }
+.switch a[aria-current="true"] { background: var(--paper); color: var(--ink); }
+.switch .jump { color: var(--grey); }
+html.js .nojs-only { display: none; }
+html.js[data-plat="mac"] .plat[data-plat="win"], html.js[data-plat="win"] .plat[data-plat="mac"] { display: none; }
+.plat-h { margin: 0 0 14px; }
+html:not(.js) .plat-block + .plat-block { margin-top: 48px; }
 
 /* sections */
 section.block { padding: clamp(64px, 9vw, 120px) 0 0; }
@@ -177,6 +214,9 @@ section.block { padding: clamp(64px, 9vw, 120px) 0 0; }
 .callouts li::before { counter-increment: c; content: counter(c, decimal-leading-zero); font: 600 12px/1.9 var(--mono); color: var(--accent); }
 .callouts strong { display: block; font-weight: 700; }
 .callouts span { color: var(--grey); font-size: 15px; }
+.callouts.plain li { grid-template-columns: 1fr; }
+.callouts.plain li::before { content: none; }
+.keys-intro { margin: 0 0 22px; max-width: 680px; color: #cfccc5; }
 @media (max-width: 860px) { .panel-grid { grid-template-columns: 1fr; } .panel-fig { max-width: 400px; margin-left: 13px; } .callouts { position: static; } }
 
 /* screens */
@@ -227,6 +267,7 @@ kbd { border: 1px solid var(--line-2); border-bottom-width: 2px; padding: 1px 6p
 .steps .n { font: 600 12px var(--mono); color: var(--accent); display: block; margin-bottom: 10px; }
 .steps strong { display: block; font-weight: 800; font-stretch: 75%; font-variation-settings: "wdth" 75; text-transform: uppercase; font-size: 22px; line-height: 1.05; margin-bottom: 8px; }
 .steps p { margin: 0; color: #cfccc5; font-size: 15px; }
+.steps .stepshot { width: 150px; margin-top: 14px; border-radius: 10px; box-shadow: 0 0 0 1px var(--line-2); }
 .steps .path { display: block; margin-top: 10px; font: 12px/1.6 var(--mono); color: var(--paper); background: var(--ink-2); border: 1px solid var(--line); padding: 8px 10px; }
 @media (max-width: 960px) { .steps { grid-template-columns: 1fr 1fr; } .steps li:nth-child(2) { border-right: 0; } .steps li:nth-child(3) { padding-left: 0; } .steps li:nth-child(n+3) { border-top: 1px solid var(--line); } }
 @media (max-width: 560px) { .steps { grid-template-columns: 1fr; } .steps li { border-right: 0 !important; padding-left: 0 !important; } .steps li + li { border-top: 1px solid var(--line); } }
@@ -246,6 +287,7 @@ kbd { border: 1px solid var(--line-2); border-bottom-width: 2px; padding: 1px 6p
 footer { border-top: 1px solid var(--line); padding: 22px 0 36px; color: var(--grey); font-family: var(--mono); font-size: 12px; }
 footer .wrap { display: flex; flex-wrap: wrap; gap: 10px 28px; justify-content: space-between; }
 footer a { color: var(--paper); }
+footer .note { flex: 1 1 100%; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 </style>
 </head>
@@ -254,9 +296,12 @@ footer a { color: var(--paper); }
 <div class="bar">
   <div class="wrap">
     <a class="brand" href="#top"><img src="assets/icon.svg" alt="">B-Side</a>
-    <span class="facts"><span class="dot"></span><span id="ver">v1.1</span> · macOS 13+ · free · open source</span>
+    <span class="facts"><span class="dot"></span><span id="ver">v1.5</span> Mac · v1.0 Windows · free · open source</span>
     <span class="grow"></span>
-    <a class="dl" href="https://github.com/PepoBCN/b-side/releases/latest/download/B-Side.zip">Download</a>
+    <span class="dls">
+      <a class="dl dl-mac" href="https://github.com/PepoBCN/b-side/releases/latest/download/B-Side.zip"><span class="long">Download for </span>Mac</a>
+      <a class="dl dl-win" href="https://github.com/PepoBCN/b-side/releases/download/win-v1.0/B-Side-Setup.exe"><span class="long">Download for </span>Windows</a>
+    </span>
   </div>
 </div>
 
@@ -265,12 +310,21 @@ footer a { color: var(--paper); }
     <div class="wrap">
       <h1>Music videos<br>behind your <em>windows.</em></h1>
       <div class="lede">
-        <p>B-Side plays a YouTube video, playlist or mix as your Mac's wallpaper, on every screen and every desktop, with the sound on. Take what's playing in Chrome, or paste a link.</p>
+        <p>B-Side plays a YouTube video, playlist or mix as your wallpaper on Mac and Windows, on every screen and every desktop, with the sound on. Paste a link. On a Mac it can also take what's playing in Chrome.</p>
         <div class="ctas">
-          <a class="btn primary" href="https://github.com/PepoBCN/b-side/releases/latest/download/B-Side.zip">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 3h2v10.17l3.59-3.58L18 11l-6 6-6-6 1.41-1.41L11 13.17zM5 19h14v2H5z"/></svg>
-            <span>Download for Mac<small><span class="v">v1.1</span> · 1.2 MB · free</small></span>
-          </a>
+          <div class="dlg dlg-mac">
+            <a class="btn dl-mac" href="https://github.com/PepoBCN/b-side/releases/latest/download/B-Side.zip">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 3h2v10.17l3.59-3.58L18 11l-6 6-6-6 1.41-1.41L11 13.17zM5 19h14v2H5z"/></svg>
+              <span>Download for Mac<small><span class="v">v1.5</span> · 1.2 MB · free</small></span>
+            </a>
+          </div>
+          <div class="dlg dlg-win">
+            <a class="btn dl-win" href="https://github.com/PepoBCN/b-side/releases/download/win-v1.0/B-Side-Setup.exe">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 3h2v10.17l3.59-3.58L18 11l-6 6-6-6 1.41-1.41L11 13.17zM5 19h14v2H5z"/></svg>
+              <span>Download for Windows<small>v1.0 · about 115 MB · free</small></span>
+            </a>
+            <span class="alt">or the <a href="https://github.com/PepoBCN/b-side/releases/download/win-v1.0/B-Side-Windows.zip">portable .zip</a></span>
+          </div>
           <a class="btn" href="https://github.com/PepoBCN/b-side/releases/latest/download/B-Side.zip" title="B-Side isn't on the Mac App Store yet. This downloads it directly.">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-6v2h3v2H7v-2h3v-2H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm1 2v8h14V7z"/></svg>
             <span>Mac App Store <span class="soon">Soon</span><small>direct download for now</small></span>
@@ -311,9 +365,10 @@ taking the video open in Chrome
         </div>
         <div class="modes" role="tablist" aria-label="Modes">
           <button role="tab" aria-selected="true" data-mode="wallpaper"><span class="label">01 Mode</span><strong>Wallpaper</strong><span class="d">Behind every window, on every desktop. The panel shows what's on.</span></button>
-          <button role="tab" aria-selected="false" data-mode="screensaver"><span class="label">02 Mode</span><strong>Screensaver</strong><span class="d">Covers everything, menu bar and Dock too. Click to come back.</span></button>
-          <button role="tab" aria-selected="false" data-mode="chrome"><span class="label">03 Hand-off</span><strong>Back to Chrome</strong><span class="d">Reopens the video in Chrome at the second it had reached.</span></button>
+          <button role="tab" aria-selected="false" data-mode="screensaver"><span class="label">02 Mode</span><strong>Screensaver</strong><span class="d">Covers everything, menu bar and Dock too (the taskbar on Windows). Click to come back.</span></button>
+          <button role="tab" aria-selected="false" data-mode="chrome"><span class="label">03 Hand-off</span><strong>Back to Chrome</strong><span class="d">Reopens the video in Chrome at the second it had reached. On Windows it opens in your default browser.</span></button>
         </div>
+        <p class="mono demo-note">The demo is a Mac desktop. On Windows it sits behind the icons the same way. Taking a video from Chrome is Mac only.</p>
       </div>
     </div>
   </section>
@@ -322,8 +377,14 @@ taking the video open in Chrome
     <div class="wrap">
       <div class="head">
         <span class="label"><b>01</b> The panel</span>
-        <div><h2>One small remote</h2><p>Click B-Side in the Dock, or open it again, and the panel comes up. Everything it does is in here. Nothing hides in a preferences window.</p></div>
+        <div><h2>One small remote</h2><p>Click B-Side in the Dock on a Mac, or its tray icon on Windows, or open it again, and the panel comes up. Everything it does is in here. Nothing hides in a preferences window.</p></div>
       </div>
+      <nav class="switch" aria-label="Show Mac or Windows details">
+        <span class="jump nojs-only">Jump to</span>
+        <span class="tabs"><a href="#panel-mac" data-plat="mac">Mac</a><a href="#panel-win" data-plat="win">Windows</a></span>
+      </nav>
+      <div class="plat plat-block" data-plat="mac" id="panel-mac">
+      <p class="label plat-h nojs-only">Mac</p>
       <div class="panel-grid">
         <figure class="panel-fig">
           <img src="assets/panel-full.png" alt="The B-Side control panel: now playing, transport, modes, link box, look settings, recents and settings" width="380" height="1522" loading="lazy">
@@ -344,6 +405,24 @@ taking the video open in Chrome
           <li><div><strong>Recent</strong><span>The last eight things you played. A whole mix counts as one.</span></div></li>
           <li><div><strong>Settings</strong><span>Skip still-picture tracks, pause on lock or battery, screensaver after idle, open at login.</span></div></li>
         </ol>
+      </div>
+      </div>
+      <div class="plat plat-block" data-plat="win" id="panel-win">
+      <p class="label plat-h nojs-only">Windows</p>
+      <div class="panel-grid">
+        <figure class="panel-fig">
+          <img src="assets/panel-win-full.png" alt="The B-Side control panel on Windows: now playing, transport, modes, link box, look settings, recents and settings" width="380" height="1522" loading="lazy">
+        </figure>
+        <ol class="callouts plain">
+          <li><div><strong>Now playing</strong><span>Thumbnail, title, channel and whether it's a playlist. Seek by clicking the bar.</span></div></li>
+          <li><div><strong>Transport and volume</strong><span>Previous, play and next, and the volume.</span></div></li>
+          <li><div><strong>Wallpaper or screensaver</strong><span>Switch at any time. Screensaver covers the taskbar and ends on a click, a key or a proper mouse move.</span></div></li>
+          <li><div><strong>Paste a link to switch</strong><span>Any video or playlist, even while something plays.</span></div></li>
+          <li><div><strong>Look</strong><span>Dim the video so desktop icons stay readable, fill the screen or keep black bars, all screens or the main one only.</span></div></li>
+          <li><div><strong>Recent</strong><span>The last eight things you played. A whole mix counts as one.</span></div></li>
+          <li><div><strong>Settings</strong><span>Skip still-picture tracks, pause on lock or battery, screensaver after idle, open at login.</span></div></li>
+        </ol>
+      </div>
       </div>
     </div>
   </section>
@@ -373,8 +452,15 @@ taking the video open in Chrome
     <div class="wrap">
       <div class="head">
         <span class="label"><b>03</b> Keys</span>
-        <div><h2>Keyboard shortcuts</h2><p>They work whichever app you're in. Watching something in Chrome? Press <kbd>⌃⌥B</kbd> and it moves behind your windows. Press it again somewhere else and it goes back to Chrome at the same second.</p></div>
+        <div><h2>Keyboard shortcuts</h2><p>They work whichever app you're in.</p></div>
       </div>
+      <nav class="switch" aria-label="Show Mac or Windows details">
+        <span class="jump nojs-only">Jump to</span>
+        <span class="tabs"><a href="#keys-mac" data-plat="mac">Mac</a><a href="#keys-win" data-plat="win">Windows</a></span>
+      </nav>
+      <div class="plat plat-block" data-plat="mac" id="keys-mac">
+      <p class="label plat-h nojs-only">Mac</p>
+      <p class="keys-intro">Watching something in Chrome? Press <kbd>⌃⌥B</kbd> and it moves behind your windows. Press it again somewhere else and it goes back to Chrome at the same second.</p>
       <table class="spec keys">
         <tr><th><kbd>⌃⌥B</kbd></th><td>Take the YouTube video you're watching in Chrome, or send it back</td></tr>
         <tr><th><kbd>⌃⌥P</kbd></th><td>Play or pause</td></tr>
@@ -383,6 +469,19 @@ taking the video open in Chrome
         <tr><th><kbd>⌃⌥M</kbd></th><td>Mute</td></tr>
       </table>
       <p class="mono" style="color:var(--grey);margin-top:14px">macOS asks once for Accessibility access so the keys work in other apps. Turn them off in Settings if you don't want them.</p>
+      </div>
+      <div class="plat plat-block" data-plat="win" id="keys-win">
+      <p class="label plat-h nojs-only">Windows</p>
+      <p class="keys-intro">Copy a YouTube link, press <kbd>Ctrl+Alt+B</kbd> and it plays behind your windows.</p>
+      <table class="spec keys">
+        <tr><th><kbd>Ctrl+Alt+B</kbd></th><td>Play the link on the clipboard</td></tr>
+        <tr><th><kbd>Ctrl+Alt+P</kbd></th><td>Play or pause</td></tr>
+        <tr><th><kbd>Ctrl+Alt+Left</kbd> <kbd>Ctrl+Alt+Right</kbd></th><td>Previous or next track</td></tr>
+        <tr><th><kbd>Ctrl+Alt+S</kbd></th><td>Switch between wallpaper and screensaver</td></tr>
+        <tr><th><kbd>Ctrl+Alt+M</kbd></th><td>Mute</td></tr>
+      </table>
+      <p class="mono" style="color:var(--grey);margin-top:14px">If another app already uses one of these keys, B-Side says so in the panel.</p>
+      </div>
     </div>
   </section>
 
@@ -392,17 +491,26 @@ taking the video open in Chrome
         <span class="label"><b>04</b> Spec sheet</span>
         <div><h2>What it does and needs</h2></div>
       </div>
+      <nav class="switch" aria-label="Show Mac or Windows details">
+        <span class="jump nojs-only">Jump to</span>
+        <span class="tabs"><a href="#spec-mac" data-plat="mac">Mac</a><a href="#spec-win" data-plat="win">Windows</a></span>
+      </nav>
       <table class="spec">
         <tr><th>Plays</th><td>Any YouTube video, playlist or mix, through YouTube's own embed player.</td></tr>
         <tr><th>Screens</th><td>Every connected screen and every desktop, or the main screen only. Rebuilds itself when you plug a screen in or out.</td></tr>
         <tr><th>Sound</th><td>From the main screen. Other screens are muted and follow it.</td></tr>
-        <tr><th>From Chrome</th><td>Takes the YouTube video open in Chrome and closes the tab (you can turn that off). Pauses any other YouTube in Chrome so only one thing plays. Back to Chrome reopens it at the same second, playlist included.</td></tr>
-        <tr><th>Pauses</th><td>When the Mac locks or the displays sleep, and on battery if you want. Carries on afterwards.</td></tr>
+        <tr class="plat" data-plat="mac"><th>From Chrome<span class="nojs-only"> (Mac)</span></th><td>Takes the YouTube video open in Chrome and closes the tab (you can turn that off). Pauses any other YouTube in Chrome so only one thing plays. Back to Chrome reopens it at the same second, playlist included.</td></tr>
+        <tr class="plat" data-plat="win"><th>From the clipboard<span class="nojs-only"> (Windows)</span></th><td>Play the link on the clipboard. Open in browser at the same second reopens the video in your default browser. Taking the video open in Chrome is Mac only.</td></tr>
+        <tr class="plat" data-plat="mac"><th>Pauses<span class="nojs-only"> (Mac)</span></th><td>When the Mac locks or the displays sleep, and on battery if you want. Carries on afterwards.</td></tr>
+        <tr class="plat" data-plat="win"><th>Pauses<span class="nojs-only"> (Windows)</span></th><td>When the PC locks, and on battery if you want. Carries on afterwards.</td></tr>
         <tr><th>Still pictures</th><td>Skips audio uploads that only show an album cover, up to three in a row, and tells you when a mix is all stills.</td></tr>
-        <tr><th>Requires</th><td>macOS 13 or later. Google Chrome for the hand-off. Pasted links work without it.</td></tr>
-        <tr><th>Size</th><td>1.2 MB download. Built with tools that ship with macOS, no Xcode.</td></tr>
-        <tr><th>YouTube Premium</th><td>Sign in once from Settings and Premium plays without ads. Optional.</td></tr>
-        <tr><th>Privacy</th><td>No B-Side account, no analytics, nothing sent anywhere. Settings live in <code>~/Library/Application Support/B-Side</code>.</td></tr>
+        <tr class="plat" data-plat="mac" id="spec-mac"><th>Requires<span class="nojs-only"> (Mac)</span></th><td>macOS 13 or later. Google Chrome for the hand-off. Pasted links work without it.</td></tr>
+        <tr class="plat" data-plat="win" id="spec-win"><th>Requires<span class="nojs-only"> (Windows)</span></th><td>Windows 10 or 11, 64-bit.</td></tr>
+        <tr class="plat" data-plat="mac"><th>Size<span class="nojs-only"> (Mac)</span></th><td>1.2 MB download. Built with tools that ship with macOS, no Xcode.</td></tr>
+        <tr class="plat" data-plat="win"><th>Size<span class="nojs-only"> (Windows)</span></th><td>About 115 MB download, because it carries its own browser engine.</td></tr>
+        <tr class="plat" data-plat="mac"><th>YouTube Premium<span class="nojs-only"> (Mac)</span></th><td>Sign in once from Settings and Premium plays without ads. Optional.</td></tr>
+        <tr class="plat" data-plat="win"><th>YouTube Premium<span class="nojs-only"> (Windows)</span></th><td>Not on Windows. Google blocks sign-in inside other apps, so the panel has no Premium sign-in.</td></tr>
+        <tr><th>Privacy</th><td>No B-Side account, no analytics, nothing sent anywhere. Settings stay on your computer<span class="plat" data-plat="mac">, in <code>~/Library/Application Support/B-Side</code></span>.</td></tr>
         <tr><th>Price</th><td>Free. MIT licence.</td></tr>
       </table>
     </div>
@@ -416,16 +524,24 @@ taking the video open in Chrome
       </div>
       <div class="term-grid">
         <div>
-          <p>Everything the panel does, <code>bside</code> does too. It ships in the repo as <code>bin/bside</code>. Link it into your path once.</p>
-          <p class="mono" style="color:var(--grey)">ln -s "$PWD/bin/bside" ~/.local/bin/bside</p>
+          <p>Everything the panel does, <code>bside</code> does too.</p>
+          <div class="plat plat-block" data-plat="mac">
+            <p class="label plat-h nojs-only">Mac</p>
+            <p>It ships in the repo as <code>bin/bside</code>. Link it into your path once.</p>
+            <p class="mono" style="color:var(--grey)">ln -s "$PWD/bin/bside" ~/.local/bin/bside</p>
+          </div>
+          <div class="plat plat-block" data-plat="win">
+            <p class="label plat-h nojs-only">Windows</p>
+            <p>It's <code>bside</code> on Windows too. The app puts the command on your PATH for you, so there is nothing to link.</p>
+          </div>
         </div>
         <div class="shell">
           <button class="copy" type="button" data-copy="cmds">Copy</button>
 <pre id="cmds"><span class="p">$ </span>bside                    <span class="c"># open the panel</span>
-<span class="p">$ </span>bside on                 <span class="c"># take the video open in Chrome</span>
-<span class="p">$ </span>bside on screensaver     <span class="c"># same, straight to screensaver</span>
+<span class="p">$ </span>bside on                 <span class="c"># take the video open in Chrome (Mac)</span>
+<span class="p">$ </span>bside on screensaver     <span class="c"># same, straight to screensaver (Mac)</span>
 <span class="p">$ </span>bside &lt;youtube link&gt;     <span class="c"># play that link</span>
-<span class="p">$ </span>bside off                <span class="c"># back to Chrome at the same second</span>
+<span class="p">$ </span>bside off                <span class="c"># back to Chrome at the same second (Mac)</span>
 <span class="p">$ </span>bside pause | next | prev | mute
 <span class="p">$ </span>bside vol 50 | dim 30 | screens main
 <span class="p">$ </span>bside status             <span class="c"># what's playing, as JSON</span></pre>
@@ -438,8 +554,16 @@ taking the video open in Chrome
     <div class="wrap">
       <div class="head">
         <span class="label"><b>06</b> Install</span>
-        <div><h2>Four steps, one honest one</h2><p>B-Side isn't notarised by Apple yet, so macOS stops it the first time. Step three is how you let it through. You only do it once.</p></div>
+        <div><h2>Four steps, one honest one</h2>
+          <p class="plat" data-plat="mac">B-Side isn't notarised by Apple yet, so macOS stops it the first time. Step three is how you let it through. You only do it once.</p>
+          <p class="plat" data-plat="win">B-Side isn't code-signed yet, so Windows SmartScreen stops it the first time. Step two is how you get past it.</p></div>
       </div>
+      <nav class="switch" aria-label="Show Mac or Windows details">
+        <span class="jump nojs-only">Jump to</span>
+        <span class="tabs"><a href="#install-mac" data-plat="mac">Mac</a><a href="#install-win" data-plat="win">Windows</a></span>
+      </nav>
+      <div class="plat plat-block" data-plat="mac" id="install-mac">
+      <p class="label plat-h nojs-only">Mac</p>
       <ol class="steps">
         <li><span class="n">01</span><strong>Download</strong><p><a href="https://github.com/PepoBCN/b-side/releases/latest/download/B-Side.zip">B-Side.zip</a> from the latest release, then unzip it.</p></li>
         <li><span class="n">02</span><strong>Move it</strong><p>Drag B-Side into Applications and open it.</p></li>
@@ -447,6 +571,17 @@ taking the video open in Chrome
         <li><span class="n">04</span><strong>Allow Chrome</strong><p>The first time B-Side takes a video from Chrome, macOS asks if it may control Google Chrome. Click Allow.</p></li>
       </ol>
       <p class="mono" style="color:var(--grey);margin-top:18px;max-width:820px">Optional: in Chrome, turn on View › Developer › Allow JavaScript from Apple Events. B-Side can then pause YouTube in Chrome when it starts playing, and pick up a video at the exact second you were watching.</p>
+      </div>
+      <div class="plat plat-block" data-plat="win" id="install-win">
+      <p class="label plat-h nojs-only">Windows</p>
+      <ol class="steps">
+        <li><span class="n">01</span><strong>Download</strong><p><a href="https://github.com/PepoBCN/b-side/releases/download/win-v1.0/B-Side-Setup.exe">B-Side-Setup.exe</a> from the Windows release. It's about 115 MB.</p></li>
+        <li><span class="n">02</span><strong>Run anyway</strong><p>Windows says "Windows protected your PC" because the app isn't code-signed yet. Click More info, then Run anyway.</p><span class="path">Windows protected your PC › More info › Run anyway</span></li>
+        <li><span class="n">03</span><strong>Install</strong><p>It installs for your user only, so it doesn't ask for an administrator password.</p></li>
+        <li><span class="n">04</span><strong>Paste a link</strong><p>B-Side opens its panel. Paste a YouTube link and it plays behind your windows.</p><img class="stepshot" src="assets/panel-win.png" alt="The B-Side panel on Windows" width="380" height="592" loading="lazy"></li>
+      </ol>
+      <p class="mono" style="color:var(--grey);margin-top:18px;max-width:820px">Using the portable <a href="https://github.com/PepoBCN/b-side/releases/download/win-v1.0/B-Side-Windows.zip">B-Side-Windows.zip</a> instead? Right-click the .zip, choose Properties and tick Unblock before you unzip it. Otherwise Windows may block the files inside.</p>
+      </div>
     </div>
   </section>
 
@@ -454,10 +589,19 @@ taking the video open in Chrome
     <div class="wrap">
       <h2>Put a record<br>on the <em style="font-style:normal;color:var(--accent)">desktop.</em></h2>
       <div class="ctas">
-        <a class="btn primary" href="https://github.com/PepoBCN/b-side/releases/latest/download/B-Side.zip">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 3h2v10.17l3.59-3.58L18 11l-6 6-6-6 1.41-1.41L11 13.17zM5 19h14v2H5z"/></svg>
-          <span>Download for Mac<small><span class="v">v1.1</span> · 1.2 MB · free</small></span>
-        </a>
+        <div class="dlg dlg-mac">
+          <a class="btn dl-mac" href="https://github.com/PepoBCN/b-side/releases/latest/download/B-Side.zip">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 3h2v10.17l3.59-3.58L18 11l-6 6-6-6 1.41-1.41L11 13.17zM5 19h14v2H5z"/></svg>
+            <span>Download for Mac<small><span class="v">v1.5</span> · 1.2 MB · free</small></span>
+          </a>
+        </div>
+        <div class="dlg dlg-win">
+          <a class="btn dl-win" href="https://github.com/PepoBCN/b-side/releases/download/win-v1.0/B-Side-Setup.exe">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 3h2v10.17l3.59-3.58L18 11l-6 6-6-6 1.41-1.41L11 13.17zM5 19h14v2H5z"/></svg>
+            <span>Download for Windows<small>v1.0 · about 115 MB · free</small></span>
+          </a>
+          <span class="alt">or the <a href="https://github.com/PepoBCN/b-side/releases/download/win-v1.0/B-Side-Windows.zip">portable .zip</a></span>
+        </div>
         <a class="btn" href="https://github.com/PepoBCN/b-side/releases/latest/download/B-Side.zip" title="B-Side isn't on the Mac App Store yet. This downloads it directly.">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-6v2h3v2H7v-2h3v-2H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm1 2v8h14V7z"/></svg>
           <span>Mac App Store <span class="soon">Soon</span><small>direct download for now</small></span>
@@ -471,6 +615,7 @@ taking the video open in Chrome
   <div class="wrap">
     <span>B-Side · <a href="https://github.com/PepoBCN/b-side">GitHub</a> · <a href="https://github.com/PepoBCN/b-side/blob/main/LICENSE">MIT licence</a></span>
     <span>Not affiliated with, endorsed by or connected to YouTube or Google.</span>
+    <span class="note">Windows build is new and was tested on GitHub's Windows runners, not yet on many real PCs. <a href="https://github.com/PepoBCN/b-side/issues">Tell us what breaks.</a></span>
   </div>
 </footer>
 
@@ -522,9 +667,24 @@ document.querySelectorAll('.copy').forEach(function (b) {
   });
 });
 
+// Mac | Windows switcher. The anchors work without JS (both platforms show). With JS one choice drives every section.
+(function () {
+  var root = document.documentElement;
+  function set(p) {
+    root.setAttribute('data-plat', p);
+    document.querySelectorAll('.switch a').forEach(function (a) { a.setAttribute('aria-current', String(a.dataset.plat === p)); });
+  }
+  document.querySelectorAll('.switch a').forEach(function (a) {
+    a.addEventListener('click', function (e) { e.preventDefault(); set(a.dataset.plat); });
+  });
+  var m = /-(mac|win)$/.exec(location.hash);
+  set(m ? m[1] : root.getAttribute('data-plat') || 'mac');
+  if (m) { var t = document.getElementById(location.hash.slice(1)); if (t) t.scrollIntoView(); }
+})();
+
 // Latest version and size from GitHub, so the page never shows a stale number.
 fetch('https://api.github.com/repos/PepoBCN/b-side/releases/latest').then(function (r) { return r.ok ? r.json() : null; }).then(function (rel) {
-  if (!rel || !rel.tag_name) return;
+  if (!rel || !/^v?\d+(\.\d+)*$/.test(rel.tag_name)) return;
   var v = rel.tag_name.replace(/^v?/, 'v');
   document.getElementById('ver').textContent = v;
   document.querySelectorAll('.v').forEach(function (el) { el.textContent = v; });
