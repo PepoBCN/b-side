@@ -1,0 +1,285 @@
+name: windows
+
+# Builds B-Side for Windows on a real Windows runner, installs the packaged app, and drives it end to end.
+# A tag called win-v* also publishes a GitHub release (never marked latest, so the Mac download link is untouched).
+on:
+  push:
+    branches: ['**']
+    tags: ['win-v*']
+    paths:
+      - 'windows/**'
+      - '.github/workflows/windows.yml'
+  pull_request:
+    paths:
+      - 'windows/**'
+      - '.github/workflows/windows.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+jobs:
+  build-test:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    outputs:
+      verdict: ${{ steps.verdict.outputs.verdict }}
+      releasable: ${{ steps.gate.outputs.releasable }}
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: windows
+    env:
+      E2E_ARTIFACTS: ${{ github.workspace }}\windows\dist\e2e-artifacts
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: windows/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Machine facts and a first desktop screenshot
+        run: |
+          New-Item -ItemType Directory -Force -Path $env:E2E_ARTIFACTS | Out-Null
+          Add-Type -AssemblyName System.Windows.Forms
+          $facts = [ordered]@{
+            os        = (Get-CimInstance Win32_OperatingSystem | Select-Object Caption, Version, BuildNumber)
+            screens   = ([System.Windows.Forms.Screen]::AllScreens | ForEach-Object { "$($_.DeviceName) $($_.Bounds.Width)x$($_.Bounds.Height) primary=$($_.Primary)" })
+            video     = (Get-CimInstance Win32_VideoController | Select-Object Name, DriverVersion, CurrentHorizontalResolution, CurrentVerticalResolution)
+            node      = (node --version)
+            user      = $env:USERNAME
+            sessionId = (Get-Process -Id $PID).SessionId
+          }
+          $facts | ConvertTo-Json -Depth 5 | Out-File -Encoding utf8 (Join-Path $env:E2E_ARTIFACTS 'machine.json')
+          Get-Content (Join-Path $env:E2E_ARTIFACTS 'machine.json')
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/screenshot.ps1 -Path (Join-Path $env:E2E_ARTIFACTS 'desktop-0-runner-before.png')
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Package (NSIS installer and portable zip)
+        id: dist
+        run: |
+          npm run dist
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Get-ChildItem dist | Where-Object { -not $_.PSIsContainer } | Select-Object Name, Length | Format-Table -AutoSize
+          foreach ($f in 'B-Side-Setup.exe', 'B-Side-Windows.zip') {
+            if (-not (Test-Path "dist/$f")) { throw "dist/$f was not produced" }
+            $h = (Get-FileHash "dist/$f" -Algorithm SHA256).Hash.ToLower()
+            "$h  $f" | Out-File -Encoding ascii "dist/$f.sha256"
+            Write-Host "$f $h ($([math]::Round((Get-Item "dist/$f").Length / 1MB, 1)) MB)"
+          }
+
+      - name: Check what was packaged (zip contents, koffi unpacked)
+        id: packcheck
+        run: |
+          $x = Join-Path $env:RUNNER_TEMP 'zipcheck'
+          Expand-Archive -Path dist/B-Side-Windows.zip -DestinationPath $x -Force
+          $must = @(
+            'B-Side.exe',
+            'resources/app.asar',
+            'resources/icon.ico',
+            'resources/app.asar.unpacked/node_modules/@koromix/koffi-win32-x64/win32_x64/koffi.node'
+          )
+          $report = @{}
+          foreach ($m in $must) { $report[$m] = (Test-Path (Join-Path $x $m)) }
+          $report['resources/bside.cmd'] = (Test-Path (Join-Path $x 'resources/bside.cmd'))
+          $report | ConvertTo-Json | Out-File -Encoding utf8 (Join-Path $env:E2E_ARTIFACTS 'package-check.json')
+          $report | ConvertTo-Json
+          $missing = $must | Where-Object { -not $report[$_] }
+          if ($missing) { throw "missing from the zip: $($missing -join ', ')" }
+
+      - name: Install the NSIS installer silently
+        id: install
+        run: |
+          $dir = Join-Path $env:RUNNER_TEMP 'bside-install'
+          $p = Start-Process -FilePath (Resolve-Path dist/B-Side-Setup.exe) -ArgumentList '/S', "/D=$dir" -Wait -PassThru
+          Write-Host "installer exit code $($p.ExitCode)"
+          if ($p.ExitCode -ne 0) { throw "installer exited with $($p.ExitCode)" }
+          $exe = Join-Path $dir 'B-Side.exe'
+          if (-not (Test-Path $exe)) {
+            $alt = Join-Path $env:LOCALAPPDATA 'Programs\B-Side\B-Side.exe'
+            if (Test-Path $alt) { Write-Host "installed to the default per-user folder instead of /D"; $exe = $alt } else { throw "B-Side.exe not found after install" }
+          }
+          # runAfterFinish may have started the app. Stop only B-Side, then let the e2e tests start their own.
+          Start-Sleep -Seconds 5
+          Get-Process -Name 'B-Side' -ErrorAction SilentlyContinue | Stop-Process -Force
+          Start-Sleep -Seconds 2
+          $lnk = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\B-Side.lnk'
+          $desk = Join-Path ([Environment]::GetFolderPath('Desktop')) 'B-Side.lnk'
+          $facts = [ordered]@{
+            exe = $exe; exeBytes = (Get-Item $exe).Length; installerExit = $p.ExitCode
+            startMenuShortcut = (Test-Path $lnk); desktopShortcut = (Test-Path $desk)
+            uninstaller = (Test-Path (Join-Path (Split-Path $exe) 'Uninstall B-Side.exe'))
+            exeVersion = (Get-Item $exe).VersionInfo.FileVersion
+          }
+          $facts | ConvertTo-Json | Out-File -Encoding utf8 (Join-Path $env:E2E_ARTIFACTS 'installer-check.json')
+          $facts | ConvertTo-Json
+          if ($facts.desktopShortcut) { throw 'a desktop shortcut was created but createDesktopShortcut is false' }
+          "BSIDE_EXE=$exe" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+          "BSIDE_INSTALL_DIR=$(Split-Path $exe)" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+
+      # Two variants, so the artefacts show which one actually paints on the runner (the transparent window is opt-in).
+      - name: Wallpaper diagnostics, default window, test colour must be visible
+        id: diag1
+        continue-on-error: true
+        run: |
+          npx electron tools/verify-wallpaper.js --require-visible --out "$env:E2E_ARTIFACTS\wallpaper-tree.json" --shot "$env:E2E_ARTIFACTS\wallpaper.png"
+          exit $LASTEXITCODE
+
+      - name: Wallpaper diagnostics, transparent window (BSIDE_TRANSPARENT=1), test colour must be visible
+        id: diag2
+        continue-on-error: true
+        env:
+          BSIDE_TRANSPARENT: '1'
+        run: |
+          npx electron tools/verify-wallpaper.js --require-visible --out "$env:E2E_ARTIFACTS\wallpaper-tree-transparent.json" --shot "$env:E2E_ARTIFACTS\wallpaper-transparent.png"
+          exit $LASTEXITCODE
+
+      - name: Wallpaper diagnostics without the GPU (only to learn why both visible checks failed)
+        if: steps.diag1.outcome == 'failure' && steps.diag2.outcome == 'failure'
+        continue-on-error: true
+        run: |
+          npx electron tools/verify-wallpaper.js --require-visible --no-gpu --out "$env:E2E_ARTIFACTS\wallpaper-tree-nogpu.json" --shot "$env:E2E_ARTIFACTS\wallpaper-nogpu.png"
+          exit $LASTEXITCODE
+
+      - name: End-to-end tests against the installed app
+        id: e2e
+        if: steps.install.outcome == 'success'
+        continue-on-error: true
+        run: npx playwright test
+
+      - name: End-to-end wallpaper test again with the transparent window (BSIDE_TRANSPARENT=1)
+        id: e2e_transparent
+        if: steps.install.outcome == 'success'
+        continue-on-error: true
+        env:
+          BSIDE_TRANSPARENT: '1'
+          E2E_ARTIFACTS: ${{ github.workspace }}\windows\dist\e2e-artifacts\transparent
+        run: npx playwright test -g "5\. wallpaper attach"
+
+      - name: Verdict
+        id: verdict
+        if: always()
+        run: node tools/ci-verdict.js
+
+      - name: Uninstall, and check it really went
+        id: uninstall
+        if: always() && steps.install.outcome == 'success'
+        run: |
+          Get-Process -Name 'B-Side' -ErrorAction SilentlyContinue | Stop-Process -Force
+          $dir = $env:BSIDE_INSTALL_DIR
+          $un = Join-Path $dir 'Uninstall B-Side.exe'
+          Start-Process -FilePath $un -ArgumentList '/S' -Wait
+          # The NSIS uninstaller copies itself and returns early, so poll.
+          $gone = $false
+          for ($i = 0; $i -lt 40; $i++) { if (-not (Test-Path (Join-Path $dir 'B-Side.exe'))) { $gone = $true; break }; Start-Sleep -Seconds 1 }
+          @{ uninstalled = $gone } | ConvertTo-Json | Out-File -Encoding utf8 (Join-Path $env:E2E_ARTIFACTS 'uninstall-check.json')
+          if (-not $gone) { throw 'B-Side.exe is still there after the silent uninstall' }
+
+      - name: Final desktop screenshot
+        if: always()
+        run: powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/screenshot.ps1 -Path (Join-Path $env:E2E_ARTIFACTS 'desktop-6-runner-after.png')
+
+      - name: Gate
+        id: gate
+        if: always()
+        env:
+          S_DIST: ${{ steps.dist.outcome }}
+          S_PACK: ${{ steps.packcheck.outcome }}
+          S_INSTALL: ${{ steps.install.outcome }}
+          S_DIAG1: ${{ steps.diag1.outcome }}
+          S_DIAG2: ${{ steps.diag2.outcome }}
+          S_E2E_T: ${{ steps.e2e_transparent.outcome }}
+          S_UNINSTALL: ${{ steps.uninstall.outcome }}
+          S_VERDICT: ${{ steps.verdict.outputs.verdict }}
+        run: |
+          $steps = [ordered]@{ dist = $env:S_DIST; packcheck = $env:S_PACK; install = $env:S_INSTALL; diag_default = $env:S_DIAG1; diag_transparent = $env:S_DIAG2; e2e_wallpaper_transparent = $env:S_E2E_T; uninstall = $env:S_UNINSTALL; verdict = $env:S_VERDICT }
+          $steps | ConvertTo-Json
+          $bad = @('dist', 'packcheck', 'install', 'uninstall' | Where-Object { $steps[$_] -ne 'success' })
+          # A blocked-by-youtube run may still be released: the build, install and every non-YouTube test passed.
+          $verdictOk = ($env:S_VERDICT -eq 'pass' -or $env:S_VERDICT -eq 'blocked-by-youtube')
+          # The wallpaper must paint in at least one variant. Which one is the question the artefacts answer.
+          $paints = ($env:S_DIAG1 -eq 'success' -or $env:S_DIAG2 -eq 'success')
+          $releasable = ($bad.Count -eq 0 -and $verdictOk -and $paints)
+          "releasable=$($releasable.ToString().ToLower())" | Out-File -Append -Encoding utf8 $env:GITHUB_OUTPUT
+          $summary = "## Gate`n`nreleasable: $releasable`n`n" + (($steps.GetEnumerator() | ForEach-Object { "- $($_.Key): $($_.Value)" }) -join "`n")
+          $summary | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY
+          $failed = @($bad)
+          if (-not $paints) { $failed += 'wallpaper diagnostics (neither variant painted)' }
+          if ($failed.Count -gt 0) { Write-Host "::error::steps not green: $($failed -join ', ')"; exit 1 }
+
+      - name: Upload installer, zip and checksums
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-build
+          path: |
+            windows/dist/B-Side-Setup.exe
+            windows/dist/B-Side-Setup.exe.sha256
+            windows/dist/B-Side-Windows.zip
+            windows/dist/B-Side-Windows.zip.sha256
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Upload test evidence (screenshots, JSON dumps, logs, Playwright report)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-e2e-evidence
+          path: windows/dist/e2e-artifacts/
+          if-no-files-found: warn
+          retention-days: 30
+
+  release:
+    needs: build-test
+    if: ${{ always() && startsWith(github.ref, 'refs/tags/win-v') && needs.build-test.outputs.releasable == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: windows-build
+          path: release-assets
+
+      - name: Publish a release that is not marked latest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+          VERDICT: ${{ needs.build-test.outputs.verdict }}
+        run: |
+          ls -la release-assets
+          {
+            echo "B-Side for Windows, built and tested on a GitHub Windows runner."
+            echo
+            echo "- B-Side-Setup.exe installs for the current user, no admin needed."
+            echo "- B-Side-Windows.zip is the portable version, unzip and run B-Side.exe."
+            echo "- Both are unsigned, so SmartScreen shows 'Windows protected your PC'. Choose More info, then Run anyway."
+            echo "- SHA-256 files are attached for both."
+            echo
+            if [ "$VERDICT" = "blocked-by-youtube" ]; then
+              echo "Note: on this build YouTube refused to play on the CI runner, so playback was not proven by the automated run. Every other check passed."
+            else
+              echo "Automated checks passed on the runner. Real sound, several monitors, high-DPI screens and a person's first run are not covered by CI."
+            fi
+            echo
+            echo "The Mac app is a separate download and is not affected by this release."
+          } > notes.md
+          if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
+            gh release upload "$TAG" release-assets/* --repo "$REPO" --clobber
+          else
+            gh release create "$TAG" release-assets/* --repo "$REPO" --verify-tag --latest=false \
+              --title "B-Side for Windows ${TAG#win-v}" --notes-file notes.md
+          fi
