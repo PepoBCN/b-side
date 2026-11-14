@@ -1,0 +1,96 @@
+# B-Side for Windows packaging. Built on a windows-latest runner (see ../.github/workflows/windows.yml).
+# Unsigned on purpose: SmartScreen warns on first run and the README says how to get past it.
+appId: com.feldberg.bside
+productName: B-Side
+copyright: Copyright (c) F. Galiano Consulting, MIT licence
+directories:
+  output: dist
+  buildResources: build
+
+# Whitelist. Production node_modules are collected by electron-builder itself; the negations below trim them.
+files:
+  - src/**/*
+  - bin/**/*
+  - package.json
+  # Icons the app loads at runtime (tray, window). Reachable from src/ as ../build/...
+  - build/icon.png
+  - build/icon.ico
+  - build/tray.png
+  - build/tray@2x.png
+  # koffi ships its C++ sources, docs and vendored headers. Only its JS loader and the platform prebuilt are needed.
+  - "!node_modules/koffi/{doc,vendor,lib}"
+  - "!node_modules/koffi/{doc,vendor,lib}/**"
+  - "!node_modules/koffi/src/**/*.{cc,hh,inc,c,h,cpp,hpp,S,asm,def}"
+  - "!node_modules/koffi/src/**/CMakeLists.txt"
+  # Keep only the win32-x64 prebuilt. Other platform packages are dropped if npm happened to install them.
+  - "!node_modules/@koromix/koffi-!(win32-x64)"
+  - "!node_modules/@koromix/koffi-!(win32-x64)/**"
+  - "!node_modules/@koromix/**/*.lib"
+  # Junk
+  - "!**/.DS_Store"
+  - "!**/*.{map,md,markdown,ts,tsbuildinfo}"
+  - "!**/{test,tests,__tests__,tools,.github,docs,doc}/**"
+  - "!{dist,tests,tools,.github,.gitignore,playwright.config.js,electron-builder.yml,PLAN.md,README.md}"
+
+# Chromium UI strings are never shown (the app has no native menus), so keep a handful of locales and cut about 45 MB.
+electronLanguages:
+  - en-US
+  - en-GB
+  - es
+  - fr
+  - de
+  - it
+  - pt-BR
+  - nl
+
+asar: true
+# Native files cannot be loaded from inside an asar archive. koffi's prebuilt .node must sit on disk.
+asarUnpack:
+  - "**/*.node"
+  - "node_modules/@koromix/**"
+  - "node_modules/koffi/**"
+
+# bin/bside.cmd is the command-line shim (lane A). src/main.js looks for resources/icon.ico (nativeImage cannot read an asar path reliably).
+extraResources:
+  - from: bin/bside.cmd
+    to: bside.cmd
+  - from: build/icon.ico
+    to: icon.ico
+  - from: build/tray.png
+    to: tray.png
+  - from: build/tray@2x.png
+    to: tray@2x.png
+
+npmRebuild: false
+nodeGypRebuild: false
+buildDependenciesFromSource: false
+
+win:
+  icon: build/icon.ico
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: zip
+      arch: [x64]
+  artifactName: B-Side-Windows.${ext}
+  # The exe gets its icon and version resources from rcedit, which needs Windows (or Wine). CI is Windows.
+  signAndEditExecutable: true
+  legalTrademarks: B-Side
+
+nsis:
+  oneClick: true
+  include: build/installer.nsh
+  perMachine: false
+  allowElevation: false
+  allowToChangeInstallationDirectory: false
+  createDesktopShortcut: false
+  createStartMenuShortcut: true
+  runAfterFinish: true
+  uninstallDisplayName: B-Side
+  deleteAppDataOnUninstall: false
+  artifactName: B-Side-Setup.exe
+  shortcutName: B-Side
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
+
+publish: null

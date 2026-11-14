@@ -1,0 +1,23 @@
+{
+  "name": "b-side-windows",
+  "productName": "B-Side",
+  "version": "1.0.0",
+  "description": "B-Side for Windows: a YouTube video, playlist or mix as your wallpaper, on every screen, with sound.",
+  "main": "src/main.js",
+  "author": "F. Galiano Consulting",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test \"tests/unit/*.test.js\"",
+    "dist": "electron-builder --win nsis zip --x64 --publish never"
+  },
+  "dependencies": {
+    "koffi": "^3.3.8"
+  },
+  "devDependencies": {
+    "electron": "^45.3.2",
+    "electron-builder": "^26.18.0",
+    "@playwright/test": "^1.65.1"
+  }
+}
